@@ -15,6 +15,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+from . import UPDATE_REPO, __version__, jobs
 from . import db as journal
 from .config import DATA, FROZEN, OUTPUT, RES, ROOT, load_config, save_config
 from .pipeline import is_running
@@ -27,7 +28,8 @@ LOG = DATA / "run.log"
 CLIP_ID = re.compile(r"^[A-Za-z0-9_-]{1,120}$")
 NOISE = ("objc[", "Class AVF", "MPS backend", "One of the duplicates")
 EXTERNAL = ("https://dev.twitch.tv/", "https://www.twitch.tv/", "https://twitch.tv/",
-            "https://clips.twitch.tv/", "https://console.anthropic.com/", "https://www.tiktok.com/")
+            "https://clips.twitch.tv/", "https://console.anthropic.com/", "https://www.tiktok.com/",
+            "https://developers.tiktok.com/", "https://github.com/")
 
 
 # ---------- état ----------
@@ -96,6 +98,8 @@ def state() -> dict:
         d = dict(r)
         d["has_video"] = bool(d["video_path"]) and Path(d["video_path"]).exists()
         d["file"] = Path(d["video_path"]).name if d["video_path"] else ""
+        d["editable"] = jobs.can_edit(r)
+        d.pop("chunks", None)
         clips.append(d)
     t, p, c = cfg["twitch"], cfg["pipeline"], cfg["claude"]
     lines = log_tail()
@@ -113,6 +117,12 @@ def state() -> dict:
         "claude": bool(c.get("api_key") or os.environ.get("ANTHROPIC_API_KEY")),
         "twitch_ok": bool(t["client_id"] and t["client_secret"]),
         "output_dir": str(OUTPUT),
+        "version": __version__,
+        "update": jobs.UPDATE if jobs.UPDATE.get("latest") else None,
+        "jobs": jobs.snapshot(),
+        "tiktok": {"connected": jobs.tiktok_connected(),
+                   "has_keys": bool(cfg["tiktok"]["client_key"] and cfg["tiktok"]["client_secret"]),
+                   "redirect": f"http://localhost:{cfg['tiktok']['redirect_port']}/callback/"},
         "settings": {
             "whitelist": cfg["streamers"]["whitelist"],
             "game_name": t.get("game_name", ""),
@@ -125,6 +135,9 @@ def state() -> dict:
             "twitch_client_id": t["client_id"],
             "twitch_secret_set": bool(t["client_secret"]),
             "claude_key_set": bool(c.get("api_key")),
+            "hook_on_screen": p.get("hook_on_screen", True),
+            "tiktok_client_key": cfg["tiktok"]["client_key"],
+            "tiktok_secret_set": bool(cfg["tiktok"]["client_secret"]),
         },
         "log": lines,
     }
@@ -144,8 +157,11 @@ SETTINGS = {  # champ de l'interface -> (section, clé, type)
     "twitch_client_id": ("twitch", "client_id", str),
     "twitch_client_secret": ("twitch", "client_secret", str),
     "claude_api_key": ("claude", "api_key", str),
+    "hook_on_screen": ("pipeline", "hook_on_screen", bool),
+    "tiktok_client_key": ("tiktok", "client_key", str),
+    "tiktok_client_secret": ("tiktok", "client_secret", str),
 }
-SECRETS = ("twitch_client_secret", "claude_api_key")
+SECRETS = ("twitch_client_secret", "claude_api_key", "tiktok_client_secret")
 
 
 def save_settings(data: dict):
@@ -160,6 +176,8 @@ def save_settings(data: dict):
         if kind is list:
             value = [re.sub(r"[^a-z0-9_]", "", str(v).lower()) for v in value]
             value = [v for v in dict.fromkeys(value) if v]
+        elif kind is bool:
+            value = bool(value)
         elif kind is int:
             value = max(0, int(value))
         else:
@@ -234,6 +252,16 @@ def thumb(clip_id: str, video: Path) -> Path | None:
     return out if out.exists() else None
 
 
+def frame(clip_id: str, source: Path, t: float) -> Path | None:
+    """Image de la vidéo d'origine à l'instant t (pour placer le cadre de la cam)."""
+    THUMBS.mkdir(parents=True, exist_ok=True)
+    out = THUMBS / f"src_{clip_id}_{round(t * 10)}.jpg"
+    if not out.exists():
+        subprocess.run([ffmpeg(), "-y", "-loglevel", "error", "-ss", f"{t:.2f}", "-i", str(source),
+                        "-frames:v", "1", "-vf", "scale=960:-2", "-q:v", "3", str(out)], **NO_WINDOW)
+    return out if out.exists() else None
+
+
 def open_url(url: str) -> bool:
     """Ouvre un lien dans le navigateur habituel (seulement les sites prévus)."""
     if not url.startswith(EXTERNAL):
@@ -293,6 +321,18 @@ class Handler(BaseHTTPRequestHandler):
             m = re.match(r"^/fonts/([A-Za-z0-9_-]+\.ttf)$", path)
             if m and (FONTS / m.group(1)).exists():
                 return self._file(FONTS / m.group(1), "font/ttf")
+            m = re.match(r"^/(source|frame)/([^/]+)$", path)
+            if m:
+                kind, cid = m.groups()
+                r = self._clip(cid)
+                if not r or not jobs.can_edit(r):
+                    return self._send(404, b"introuvable", "text/plain")
+                src = Path(r["source_path"])
+                if kind == "source":
+                    return self._file(src, "video/mp4")
+                q = re.search(r"[?&]t=([\d.]+)", self.path)
+                img = frame(cid, src, float(q.group(1)) if q else 1.5)
+                return self._file(img, "image/jpeg") if img else self._send(404)
             m = re.match(r"^/(video|thumb|download)/([^/]+)$", path)
             if m:
                 kind, cid = m.groups()
@@ -336,15 +376,28 @@ class Handler(BaseHTTPRequestHandler):
                 OUTPUT.mkdir(parents=True, exist_ok=True)
                 reveal(OUTPUT)
                 return self._json({"ok": True})
+            if path == "/api/tiktok/login":
+                return self._json({"started": jobs.tiktok_login()})
+            if path == "/api/tiktok/logout":
+                from .tiktok import TOKEN_FILE
+                TOKEN_FILE.unlink(missing_ok=True)
+                return self._json({"ok": True})
+            if path == "/api/update-check":
+                jobs.check_update(UPDATE_REPO)
+                return self._json({"update": jobs.UPDATE if jobs.UPDATE.get("latest") else None})
             if path == "/api/open-url":
                 return self._json({"ok": open_url(str(data.get("url", "")))})
-            m = re.match(r"^/api/clip/([^/]+)/(posted|discard|restore|caption|reveal)$", path)
+            m = re.match(r"^/api/clip/([^/]+)/(posted|discard|restore|caption|reveal|rerender|tiktok)$", path)
             if m:
                 cid, action = m.groups()
                 r = self._clip(cid)
                 if not r:
                     return self._json({"error": "clip inconnu"}, 404)
                 conn = journal.connect()
+                if action == "rerender":
+                    return self._json({"started": jobs.rerender(cid, data)})
+                if action == "tiktok":
+                    return self._json({"started": jobs.tiktok_send(cid)})
                 if action == "reveal":
                     if not r["video_path"] or not Path(r["video_path"]).exists():
                         return self._json({"error": "la vidéo n'existe plus"}, 404)
@@ -369,6 +422,7 @@ def start_server(port: int = 0) -> tuple[ThreadingHTTPServer, str]:
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     threading.Thread(target=scheduler, daemon=True).start()
+    threading.Thread(target=jobs.update_loop, args=(UPDATE_REPO,), daemon=True).start()
     return server, f"http://127.0.0.1:{server.server_address[1]}"
 
 

@@ -20,6 +20,7 @@ RES = Path(getattr(sys, "_MEIPASS", ROOT))               # ressources embarquée
 DATA = Path(user_data_dir(APP_NAME, appauthor=False))
 OUTPUT = Path(user_videos_dir()) / APP_NAME
 WORK = DATA / "work"
+SOURCES = DATA / "sources"          # vidéos Twitch d'origine, pour remonter un clip
 SETTINGS_FILE = DATA / "settings.json"
 
 DEFAULTS = {
@@ -45,6 +46,9 @@ DEFAULTS = {
         "facecam": "auto",
         "facecam_position": "top",
         "auto_minutes": 0,          # 0 = pas de passage automatique
+        "hook_on_screen": True,     # accroche en gros pendant les premières secondes
+        "hook_seconds": 2.5,
+        "keep_sources_days": 7,     # garder la vidéo d'origine pour pouvoir remonter le clip
     },
     "tiktok": {"enabled": False, "client_key": "", "client_secret": "", "redirect_port": 3455},
     "claude": {"enabled": True, "model": "claude-opus-5-5", "api_key": ""},
@@ -92,7 +96,7 @@ def _migrate_old_name():
 
 def ensure_dirs():
     _migrate_old_name()
-    for d in (DATA, OUTPUT, WORK):
+    for d in (DATA, OUTPUT, WORK, SOURCES):
         d.mkdir(parents=True, exist_ok=True)
 
 

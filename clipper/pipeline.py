@@ -1,4 +1,6 @@
 """Un passage complet : détection Twitch → téléchargement → sous-titres → montage → légende."""
+import json
+import shutil
 import time
 from datetime import datetime
 from pathlib import Path
@@ -6,7 +8,7 @@ from pathlib import Path
 from filelock import FileLock, Timeout
 
 from . import db as journal
-from .config import DATA, OUTPUT, WORK, load_config, save_config
+from .config import DATA, OUTPUT, SOURCES, WORK, load_config, save_config
 from .tools import notify
 
 LOCK = DATA / "run.lock"
@@ -55,13 +57,21 @@ def prepare(cfg, conn, clip) -> bool:
             log("   sous-titres… (le premier passage télécharge le modèle, ~500 Mo, une seule fois)")
             transcript, chunks = transcribe(src, p["whisper_model"], p["language"])
         facecam = find_facecam(cfg, clip["login"], src)
-        out = day_dir / f"{clip['login']}_{clip['id'][:40]}.mp4"
-        render(src, out, clip["broadcaster_name"], chunks, facecam=facecam, zoom=p["zoom"],
-               cam_position=p.get("facecam_position", "top"))
         caption = write_caption(cfg, clip, transcript)
+        hook = caption.split("\n", 1)[0].strip() if p.get("hook_on_screen", True) else ""
+        out = day_dir / f"{clip['login']}_{clip['id'][:40]}.mp4"
+        cam_position = p.get("facecam_position", "top")
+        render(src, out, clip["broadcaster_name"], chunks, facecam=facecam, zoom=p["zoom"],
+               cam_position=cam_position, hook=hook, hook_seconds=p.get("hook_seconds", 2.5))
         out.with_suffix(".txt").write_text(caption, encoding="utf-8")
+        # On garde la vidéo d'origine quelques jours pour pouvoir ajuster et remonter le clip.
+        kept = SOURCES / f"{clip['id']}{src.suffix}"
+        shutil.move(str(src), kept)
         status = "ready" if cfg["tiktok"]["enabled"] else "manual"
-        journal.insert(conn, clip, status, video_path=str(out), caption=caption, ready_at=time.time())
+        journal.insert(conn, clip, status, video_path=str(out), caption=caption, ready_at=time.time(),
+                       source_path=str(kept), chunks=json.dumps(chunks), cam_position=cam_position,
+                       facecam=json.dumps(facecam) if facecam else None, hook=hook,
+                       trim_start=0.0, trim_end=None, duration=float(clip.get("duration") or 0))
         log(f"🎬 monté : {out.name}")
         return True
     except Exception as e:
@@ -100,6 +110,16 @@ def send_ready(cfg, conn) -> int:
     return sent
 
 
+def prune_sources(cfg, conn):
+    """Supprime les vidéos d'origine trop vieilles ou de clips déjà publiés / écartés."""
+    days = cfg["pipeline"].get("keep_sources_days", 7)
+    old = time.time() - days * 86400
+    for r in conn.execute("SELECT id, source_path, status, seen_at FROM clips WHERE source_path IS NOT NULL"):
+        if r["seen_at"] < old or (r["status"] in ("posted", "sent") and r["seen_at"] < time.time() - 86400):
+            Path(r["source_path"]).unlink(missing_ok=True)
+            journal.update(conn, r["id"], source_path=None)
+
+
 def run():
     cfg = load_config()
     try:
@@ -117,6 +137,7 @@ def run():
         limit = time.time() - cfg["pipeline"]["ready_expiry_hours"] * 3600
         conn.execute("UPDATE clips SET status = 'expired' WHERE status = 'ready' AND ready_at < ?", (limit,))
         conn.commit()
+        prune_sources(cfg, conn)
 
         log("🔎 recherche des clips…")
         candidates = find_candidates(cfg, journal.known_ids(conn))

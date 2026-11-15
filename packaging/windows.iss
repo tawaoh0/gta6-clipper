@@ -1,6 +1,8 @@
 ; Installateur Windows (Inno Setup 6) : iscc packaging\windows.iss
 #define AppName "Grand Clip Auto"
-#define AppVersion "0.1.0"
+#ifndef AppVersion
+  #define AppVersion "0.2.0"
+#endif
 
 [Setup]
 AppId={{6A1E2C34-8F4B-4E7A-9D2B-C1A9F0E5B7D3}

@@ -25,7 +25,10 @@ CREATE TABLE IF NOT EXISTS clips (
     sent_at REAL
 );
 """
-EXTRA_COLUMNS = {"game": "TEXT"}   # colonnes ajoutées après coup
+EXTRA_COLUMNS = {  # colonnes ajoutées après coup (pour pouvoir remonter un clip)
+    "game": "TEXT", "source_path": "TEXT", "chunks": "TEXT", "facecam": "TEXT", "cam_position": "TEXT",
+    "trim_start": "REAL", "trim_end": "REAL", "hook": "TEXT", "duration": "REAL",
+}   # colonnes ajoutées après coup
 
 
 def connect() -> sqlite3.Connection:

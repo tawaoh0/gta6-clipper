@@ -32,13 +32,11 @@
   --r: 14px;
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; }
+html, body { margin: 0; height: 100%; overflow: hidden; }   /* la fenêtre ne défile jamais */
 body {
-  min-height: 100vh;
   background: var(--night);
   color: var(--text);
   font: 500 15px/1.5 var(--body);
-  overflow-x: hidden;
 }
 /* Ciel de nuit + horizon coucher de soleil + grain */
 body::before {
@@ -54,17 +52,23 @@ body::after {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 button { font: inherit; color: inherit; cursor: pointer; }
-.wrap { max-width: 1280px; margin: 0 auto; padding: 28px 24px 80px; }
+.wrap { max-width: 1680px; height: 100%; margin: 0 auto; padding: 22px 28px 18px; display: flex; flex-direction: column; }
+.wrap > header, .wrap > .status, .wrap > .stats, .wrap > nav { flex: none; }
+/* Zone principale : remplit le reste de la fenêtre. Seuls Réglages et Journal défilent à l'intérieur. */
+#view { flex: 1; min-height: 0; position: relative; }
+#view[data-tab="settings"], #view[data-tab="log"] { overflow-y: auto; padding-right: 4px; }
+#view[data-tab="log"] { display: flex; flex-direction: column; }
+#view[data-tab="log"] .log { flex: 1; max-height: none; }
 
 /* ---------- en-tête ---------- */
 header {
   display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap;
-  padding-bottom: 22px; border-bottom: 1px solid var(--line-soft);
+  padding-bottom: 16px; border-bottom: 1px solid var(--line-soft);
   animation: rise .6s cubic-bezier(.2, .8, .2, 1) both;
 }
 .brand { display: flex; align-items: flex-end; gap: 14px; }
 .brand h1 {
-  margin: 0; font: 400 64px/.86 var(--display); letter-spacing: .5px; text-transform: uppercase;
+  margin: 0; font: 400 54px/.86 var(--display); letter-spacing: .5px; text-transform: uppercase;
 }
 .brand h1 span { background: var(--sun); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .brand .tag {
@@ -114,17 +118,17 @@ header {
 
 /* ---------- compteurs ---------- */
 .stats {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin: 26px 0 22px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin: 16px 0 14px;
   background: var(--line-soft); border: 1px solid var(--line-soft); border-radius: var(--r); overflow: hidden;
   animation: rise .6s .08s cubic-bezier(.2, .8, .2, 1) both;
 }
-.stat { background: rgba(14, 11, 22, .85); padding: 16px 20px; }
-.stat b { display: block; font: 400 40px/1 var(--display); letter-spacing: .5px; }
+.stat { background: rgba(14, 11, 22, .85); padding: 12px 20px; display: flex; align-items: baseline; gap: 12px; }
+.stat b { display: block; font: 400 32px/1 var(--display); letter-spacing: .5px; }
 .stat:first-child b { background: var(--sun); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .stat span { font: 600 11px/1 var(--mono); letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; }
 
 /* ---------- onglets ---------- */
-nav { display: flex; gap: 4px; margin-bottom: 22px; flex-wrap: wrap; animation: rise .6s .14s cubic-bezier(.2, .8, .2, 1) both; }
+nav { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; animation: rise .6s .14s cubic-bezier(.2, .8, .2, 1) both; }
 nav button {
   border: 0; background: none; padding: 10px 14px; border-radius: 10px; color: var(--muted);
   font-weight: 700; font-size: 14px; position: relative;
@@ -137,7 +141,25 @@ nav button[aria-selected="true"]::after {
 nav .count { font: 600 11px var(--mono); color: var(--dim); margin-left: 6px; }
 
 /* ---------- grille de clips ---------- */
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px; }
+/* Les clips sur une seule ligne, qu'on fait défiler de gauche à droite */
+.reel { height: 100%; position: relative; }
+.grid {
+  display: flex; gap: 18px; height: 100%; overflow-x: auto; overflow-y: hidden; padding: 8px 2px 14px;
+  scroll-snap-type: x proximity; scroll-behavior: smooth; overscroll-behavior-x: contain;
+  scrollbar-width: thin; scrollbar-color: #3a2f55 transparent;
+}
+.grid::-webkit-scrollbar { height: 8px; }
+.grid::-webkit-scrollbar-thumb { background: #3a2f55; border-radius: 8px; }
+.grid > .card { flex: none; height: 100%; max-height: 720px; scroll-snap-align: start; }
+.reel .arrow {
+  position: absolute; top: 50%; z-index: 2; width: 46px; height: 46px; margin-top: -30px; border-radius: 50%;
+  border: 1px solid var(--line); background: rgba(14, 11, 22, .85); backdrop-filter: blur(8px); display: grid; place-items: center;
+  box-shadow: 0 10px 30px -10px #000; transition: opacity .2s, transform .15s;
+}
+.reel .arrow:hover { transform: scale(1.06); border-color: #4a3d68; }
+.reel .arrow.prev { left: -8px; } .reel .arrow.next { right: -8px; }
+.reel .arrow[hidden] { display: none; }
+.reel .arrow svg { width: 18px; height: 18px; }
 .card {
   position: relative; border-radius: var(--r); overflow: hidden; border: 1px solid var(--line-soft);
   background: var(--panel-solid); aspect-ratio: 9 / 16; text-align: left; padding: 0;
@@ -186,7 +208,7 @@ nav .count { font: 600 11px var(--mono); color: var(--dim); margin-left: 6px; }
 .chip button { border: 0; background: rgba(255, 255, 255, .08); width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; padding: 0; color: var(--muted); }
 .chip button:hover { background: var(--bad); color: #fff; }
 .add { display: flex; gap: 8px; }
-input[type=text], input[type=number], textarea {
+input[type=text], input[type=number], input[type=password], textarea {
   width: 100%; background: rgba(8, 6, 14, .7); border: 1px solid var(--line); border-radius: 10px;
   padding: 11px 13px; color: var(--text); font: 500 14px var(--body); outline: none; transition: border-color .2s, box-shadow .2s;
 }
@@ -247,7 +269,7 @@ dialog[open] .studio { animation: pop .35s cubic-bezier(.2, .9, .25, 1.15) both;
 
 /* ---------- barre d'état du passage ---------- */
 .status {
-  display: flex; align-items: center; gap: 16px; margin-top: 22px; padding: 14px 18px; border-radius: var(--r);
+  display: flex; align-items: center; gap: 16px; margin-top: 16px; padding: 14px 18px; border-radius: var(--r);
   background: var(--panel); border: 1px solid var(--line-soft); backdrop-filter: blur(8px);
   animation: rise .6s .04s cubic-bezier(.2, .8, .2, 1) both;
 }
@@ -286,6 +308,39 @@ dialog[open] .studio { animation: pop .35s cubic-bezier(.2, .9, .25, 1.15) both;
 .steps li .lbl span { color: var(--muted); font-size: 12.5px; }
 .steps li .btn { padding: 8px 12px; font-size: 13px; white-space: nowrap; }
 .acts { display: flex; gap: 8px; }
+.consent-line { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 16px; cursor: pointer; }
+.consent-line input { margin-top: 4px; accent-color: var(--sun-1); width: 16px; height: 16px; }
+.consent-line small { color: var(--dim); font-size: 12px; }
+.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: rgba(8, 6, 14, .7); border: 1px solid var(--line); }
+.modes button { border: 0; background: none; padding: 9px; border-radius: 9px; font-weight: 700; font-size: 13.5px; color: var(--muted); }
+.modes button[aria-selected="true"] { background: var(--panel-solid); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
+.pane { display: flex; flex-direction: column; gap: 14px; }
+.pane[hidden] { display: none; }
+.studio .side { max-height: 86vh; overflow-y: auto; }
+.ed { border: 1px solid var(--line-soft); border-radius: 14px; padding: 14px; background: rgba(8, 6, 14, .5); display: grid; gap: 10px; }
+.ed h4 { margin: 0; font: 400 17px/1 var(--display); text-transform: uppercase; letter-spacing: .5px; }
+.ed .hint { margin: 0; font-size: 12.5px; }
+.trim { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.trim .t { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: rgba(8, 6, 14, .7); }
+.trim .t b { font: 600 15px var(--mono); }
+.trim .t span { font: 600 10.5px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 1px; display: block; }
+.trim .btn { padding: 7px 10px; font-size: 12.5px; }
+.tl { position: relative; height: 34px; border-radius: 8px; background: rgba(255, 255, 255, .05); border: 1px solid var(--line); cursor: pointer; }
+.tl .keep { position: absolute; top: 0; bottom: 0; background: rgba(255, 46, 136, .25); border-left: 3px solid var(--sun-1); border-right: 3px solid var(--sun-2); }
+.tl .head { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #fff; border-radius: 2px; }
+.seg.two { grid-template-columns: repeat(3, 1fr); margin: 0; }
+.seg.two button { flex-direction: row; justify-content: center; padding: 9px 6px; }
+.camsel { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); user-select: none; touch-action: none; background: #000; }
+.camsel img { display: block; width: 100%; pointer-events: none; }
+.camsel .rect { position: absolute; border: 2px solid var(--sun-1); background: rgba(255, 46, 136, .15); box-shadow: 0 0 0 9999px rgba(0, 0, 0, .45); cursor: move; }
+.camsel .rect i { position: absolute; right: -8px; bottom: -8px; width: 16px; height: 16px; border-radius: 50%; background: var(--sun-1); border: 2px solid #fff; cursor: nwse-resize; }
+.posrow { display: flex; gap: 8px; }
+.posrow .btn { flex: 1; justify-content: center; padding: 8px; font-size: 13px; }
+.posrow .btn[aria-pressed="true"] { border-color: var(--sun-1); color: var(--text); background: rgba(255, 46, 136, .12); }
+.rerender { display: flex; align-items: center; gap: 12px; position: sticky; bottom: 0; padding-top: 6px; background: var(--panel-solid); }
+.rerender .btn { flex: 1; justify-content: center; }
+.pill[hidden] { display: none; }
+.update-pill { cursor: pointer; border-color: rgba(63, 224, 160, .5); color: var(--ok); }
 .file-name { font: 500 11.5px var(--mono); color: var(--dim); word-break: break-all; }
 
 /* ---------- réglages : champs explicatifs ---------- */
@@ -351,6 +406,7 @@ label.f small { display: block; color: var(--dim); font-size: 12px; margin-top: 
       <div class="tag">Twitch → TikTok</div>
     </div>
     <div class="controls">
+      <button class="pill update-pill" id="updatePill" hidden title="Télécharger la nouvelle version">★ Nouvelle version</button>
       <button class="pill" id="twitchPill" title="Connexion Twitch"><span class="dot"></span><span>Twitch</span></button>
       <button class="btn ghost" id="folderBtn" title="Ouvrir le dossier où sont rangées les vidéos">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
@@ -400,6 +456,11 @@ label.f small { display: block; color: var(--dim); font-size: 12px; margin-top: 
         </button>
       </div>
       <div class="facts-line" id="sFacts"></div>
+      <div class="modes" role="tablist">
+        <button data-mode="publish" aria-selected="true">Publier</button>
+        <button data-mode="edit" aria-selected="false">Ajuster la vidéo</button>
+      </div>
+      <div class="pane" id="pPublish">
       <div>
         <label class="f"><span>Légende TikTok (modifiable)</span></label>
         <textarea id="sCaption" aria-label="Légende TikTok"></textarea>
@@ -410,11 +471,13 @@ label.f small { display: block; color: var(--dim); font-size: 12px; margin-top: 
           <button class="btn sun" id="sCopy">Copier</button></li>
         <li data-step="reveal"><div class="lbl"><b>Trouver la vidéo</b><span class="file-name" id="sFile"></span></div>
           <button class="btn" id="sReveal">Afficher</button></li>
-        <li data-step="tiktok"><div class="lbl"><b>Publier sur TikTok</b><span>Importe la vidéo, colle la légende.</span></div>
-          <button class="btn" id="sTiktok">Ouvrir TikTok ↗</button></li>
+        <li data-step="tiktok"><div class="lbl"><b>Publier sur TikTok</b><span id="sTiktokHint">Importe la vidéo, colle la légende.</span></div>
+          <span class="acts" id="sTiktokBtns"></span></li>
         <li data-step="posted"><div class="lbl"><b>Ranger le clip</b><span>Une fois publié, il passe dans « Publiés ».</span></div>
           <span id="sActions"></span></li>
       </ol>
+      </div>
+      <div class="pane" id="pEdit" hidden></div>
     </div>
   </div>
 </dialog>
@@ -475,6 +538,8 @@ const openExt = url => api("/api/open-url", { url }).catch(() => window.open(url
 
 // ---------- en-tête + barre d'état ----------
 function renderHeader() {
+  $("#updatePill").hidden = !S.update;
+  if (S.update) $("#updatePill").textContent = `★ Version ${S.update.latest} disponible`;
   const tw = $("#twitchPill");
   tw.querySelector(".dot").className = "dot " + (S.twitch_ok ? "on" : "bad");
   tw.lastElementChild.textContent = S.twitch_ok ? "Twitch connecté" : "Clés Twitch manquantes";
@@ -570,7 +635,8 @@ function renderEmpty() {
 function renderList(filter, emptyMsg) {
   const list = S.clips.filter(filter);
   if (!list.length) return emptyMsg;
-  return `<div class="grid">${list.map(card).join("")}</div>`;
+  const arrow = (dir, d) => `<button class="arrow ${dir}" data-scroll="${dir}" aria-label="${dir === "prev" ? "Clips précédents" : "Clips suivants"}" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg></button>`;
+  return `<div class="reel">${arrow("prev", "M15 5l-7 7 7 7")}<div class="grid">${list.map(card).join("")}</div>${arrow("next", "M9 5l7 7-7 7")}</div>`;
 }
 
 // ---------- réglages ----------
@@ -610,6 +676,8 @@ function renderSettings() {
         ${seg("bottom", "Cam en dessous", '<span class="mini"><i class="g"></i><i class="c"></i></span>')}
         ${seg("off", "Sans cam", '<span class="mini"><i class="b"></i></span>')}
       </div>
+      <label class="consent-line"><input type="checkbox" data-b="hook_on_screen" ${d.hook_on_screen ? "checked" : ""}>
+        <span><b>Accroche à l'écran</b><br><small>La première ligne de la légende s'affiche en gros pendant 2,5 s. Modifiable clip par clip dans « Ajuster la vidéo ».</small></span></label>
       <div class="folder-line">
         <div><label class="f"><span>Les vidéos sont rangées dans</span></label><code>${esc(S.output_dir)}</code></div>
         <button class="btn" data-open-folder>Ouvrir dans ${FINDER}</button>
@@ -630,6 +698,25 @@ function renderSettings() {
           <small>Sert à écrire des accroches. Sans clé, la légende reprend le titre du clip. Clé sur <a class="link" data-ext="https://console.anthropic.com/settings/keys">console.anthropic.com</a>.</small></label>
       </div>
     </div>
+    <div class="box">
+      <h3>TikTok : envoi en brouillon</h3>
+      <p class="hint">Optionnel. Une fois connecté, le bouton « Envoyer en brouillon » met la vidéo dans ta boîte de réception TikTok. Tu ajoutes la légende et tu publies depuis l'app TikTok.</p>
+      <div class="stack" style="display:grid;gap:14px">
+        <div class="folder-line"><span class="keystate"><span class="dot ${S.tiktok?.connected ? "on" : ""}"></span>${S.tiktok?.connected ? "Compte connecté" : "Pas connecté"}</span>
+          ${S.tiktok?.connected ? `<button class="btn" data-tk="logout" type="button">Déconnecter</button>` : `<button class="btn sun" data-tk="login" type="button" ${S.tiktok?.has_keys ? "" : "disabled"}>${S.jobs?.["tiktok:login"]?.state === "running" ? "En attente de TikTok…" : "Connecter mon compte"}</button>`}</div>
+        ${S.jobs?.["tiktok:login"]?.state === "error" ? `<div class="msg bad">${esc(S.jobs["tiktok:login"].message)}</div>` : ""}
+        <label class="f"><span>Clé client (Client key)</span><input type="text" data-s="tiktok_client_key" value="${esc(d.tiktok_client_key)}" autocomplete="off" spellcheck="false"></label>
+        <label class="f"><span>Secret client <em class="keystate">${d.tiktok_secret_set ? "· enregistré" : "· manquant"}</em></span><input type="password" data-s="tiktok_client_secret" placeholder="${d.tiktok_secret_set ? "Laisser vide pour garder l'actuel" : "Colle le secret ici"}" autocomplete="off">
+          <small>Crée une app sur <a class="link" data-ext="https://developers.tiktok.com/apps">developers.tiktok.com</a> avec Login Kit (Desktop) et Content Posting API, scopes <b>user.info.basic</b> et <b>video.upload</b>, URL de redirection <b>${esc(S.tiktok?.redirect || "")}</b>. Enregistre les clés ici, puis « Connecter mon compte ».</small></label>
+      </div>
+    </div>
+
+    <div class="box">
+      <h3>Application</h3>
+      <p class="hint">Version ${esc(S.version)}. L'app vérifie toute seule les nouvelles versions au démarrage, puis toutes les 6 heures.</p>
+      <div class="folder-line"><span class="msg" id="updMsg">${S.update ? `Nouvelle version ${esc(S.update.latest)} disponible.` : ""}</span>
+        ${S.update ? `<button class="btn sun" data-update type="button">Télécharger la version ${esc(S.update.latest)}</button>` : `<button class="btn" data-check-update type="button">Vérifier maintenant</button>`}</div>
+    </div>
   </div>
   <div class="save-bar"><span>Les changements s'appliquent au prochain passage.</span><button class="btn sun" id="saveSettings">Enregistrer</button></div>`;
 }
@@ -637,6 +724,7 @@ function renderSettings() {
 function collectDraft() {
   document.querySelectorAll("#view [data-k]").forEach(i => settingsDraft[i.dataset.k] = +i.value);
   document.querySelectorAll("#view [data-s]").forEach(i => settingsDraft[i.dataset.s] = i.value);
+  document.querySelectorAll("#view [data-b]").forEach(i => settingsDraft[i.dataset.b] = i.checked);
 }
 
 function renderLog() {
@@ -667,9 +755,36 @@ function render() {
   if (!fresh && view._html === html) return;
   view._html = html;
   view.classList.toggle("calm", !fresh); // pas d'animation d'entrée sur une simple mise à jour
+  const keep = fresh ? 0 : ($("#view .grid")?.scrollLeft || 0);
   view.innerHTML = html;
+  if (keep) { const g = $("#view .grid"); if (g) { g.style.scrollBehavior = "auto"; g.scrollLeft = keep; g.style.scrollBehavior = ""; } }
   if (tab === "log") { const lb = $("#logBox"); lb.scrollTop = lb.scrollHeight; }
+  setupReel();
 }
+
+// ---------- défilement horizontal des clips ----------
+function updateArrows() {
+  const g = $("#view .grid"); if (!g) return;
+  $("#view .arrow.prev").hidden = g.scrollLeft < 8;
+  $("#view .arrow.next").hidden = g.scrollLeft + g.clientWidth >= g.scrollWidth - 8;
+}
+function setupReel() {
+  const g = $("#view .grid"); if (!g || g._ready) return updateArrows();
+  g._ready = true;
+  g.addEventListener("scroll", updateArrows, { passive: true });
+  // La molette (ou le pavé tactile vertical) fait défiler les clips de côté
+  g.addEventListener("wheel", e => {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { e.preventDefault(); g.scrollBy({ left: e.deltaY * 1.4, behavior: "auto" }); }
+  }, { passive: false });
+  updateArrows();
+}
+window.addEventListener("resize", updateArrows);
+document.addEventListener("keydown", e => {
+  if ($("#studio").open || $("#wizard").open || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName)) return;
+  const g = $("#view .grid"); if (!g) return;
+  if (e.key === "ArrowRight") g.scrollBy({ left: g.clientWidth * .8 });
+  if (e.key === "ArrowLeft") g.scrollBy({ left: -g.clientWidth * .8 });
+});
 function rerender() { $("#view").dataset.tab = ""; render(); }
 function goSettings() { tab = "settings"; settingsDraft = null; rerender(); }
 
@@ -686,7 +801,9 @@ function openStudio(id) {
   $("#sFile").textContent = c.file || "";
   $("#sReveal").textContent = `Afficher dans ${FINDER}`;
   document.querySelectorAll("#sSteps li").forEach(li => li.classList.remove("done"));
-  $("#player").src = `/video/${encodeURIComponent(c.id)}`;
+  ed = null;
+  setMode("publish");
+  renderTiktok();
   const done = c.status === "posted" || c.status === "discarded";
   $("#sActions").innerHTML = done
     ? `<button class="btn" data-act="restore">${ICON.undo} Remettre dans la file</button>`
@@ -694,7 +811,7 @@ function openStudio(id) {
   $("#studio").showModal();
   $("#player").play().catch(() => {});
 }
-function closeStudio() { $("#player").pause(); $("#player").removeAttribute("src"); $("#player").load(); if ($("#studio").open) $("#studio").close(); current = null; }
+function closeStudio() { ed = null; $("#player").pause(); $("#player").removeAttribute("src"); $("#player").load(); if ($("#studio").open) $("#studio").close(); current = null; }
 const stepDone = k => $(`#sSteps li[data-step="${k}"]`)?.classList.add("done");
 
 async function saveCaption() {
@@ -705,6 +822,186 @@ async function saveCaption() {
   current.caption = v;
   $("#sSaved").textContent = "Légende enregistrée";
 }
+
+// ---------- ajuster un clip (début, fin, cam, accroche) ----------
+let ed = null;
+const sec = v => `${(Math.round(v * 10) / 10).toLocaleString("fr-FR", { minimumFractionDigits: 1 })} s`;
+const P = () => $("#player");
+
+function setMode(mode) {
+  document.querySelectorAll(".modes button").forEach(b => b.setAttribute("aria-selected", b.dataset.mode === mode));
+  $("#pPublish").hidden = mode !== "publish";
+  $("#pEdit").hidden = mode !== "edit";
+  if (!current) return;
+  const id = encodeURIComponent(current.id);
+  if (mode === "edit" && current.editable) {
+    if (!ed) startEdit();
+    P().src = `/source/${id}`;
+  } else {
+    P().src = `/video/${id}?v=${Date.now()}`;
+  }
+  renderEdit();
+}
+
+function startEdit() {
+  const c = current;
+  let rect = null;
+  try { rect = c.facecam ? JSON.parse(c.facecam) : null; } catch {}
+  ed = { start: c.trim_start || 0, end: c.trim_end || null, dur: null, cam: "keep", rect: rect || [0.02, 0.05, 0.26, 0.3],
+         hadCam: !!rect, pos: c.cam_position || "top", hook: c.hook ?? "", frameT: 1.5 };
+}
+
+function renderEdit() {
+  const pane = $("#pEdit");
+  if (pane.hidden || !current) return;
+  if (!current.editable) {
+    pane.innerHTML = `<div class="ed"><h4>Ajustement indisponible</h4><p class="hint">La vidéo d'origine de ce clip n'est plus sur l'ordinateur (clip ancien, déjà publié, ou de plus de 7 jours). Les nouveaux clips peuvent être ajustés.</p></div>`;
+    return;
+  }
+  const job = S.jobs?.[`render:${current.id}`];
+  const busy = job?.state === "running";
+  const dur = ed.dur || 0, end = ed.end ?? dur;
+  const pct = v => dur ? (v / dur) * 100 : 0;
+  const camSeg = (v, l) => `<button data-cammode="${v}" aria-pressed="${ed.cam === v}">${l}</button>`;
+  pane.innerHTML = `
+    <div class="ed">
+      <h4>Début et fin</h4>
+      <p class="hint">Lis la vidéo d'origine à gauche, puis place le début et la fin à l'endroit voulu.</p>
+      <div class="tl" id="tl"><div class="keep" style="left:${pct(ed.start)}%;width:${pct(end) - pct(ed.start)}%"></div><div class="head" id="tlHead"></div></div>
+      <div class="trim">
+        <div class="t"><div><span>Début</span><b>${sec(ed.start)}</b></div><button class="btn" data-mark="start">Mettre ici</button></div>
+        <div class="t"><div><span>Fin</span><b>${dur ? sec(end) : "…"}</b></div><button class="btn" data-mark="end">Mettre ici</button></div>
+      </div>
+      <p class="hint">Durée du clip : <b>${dur ? sec(end - ed.start) : "…"}</b></p>
+    </div>
+    <div class="ed">
+      <h4>Facecam</h4>
+      <div class="seg two">${camSeg("keep", ed.hadCam ? "Garder" : "Comme avant")}${camSeg("manual", "Placer à la main")}${camSeg("none", "Sans cam")}</div>
+      ${ed.cam === "manual" ? `
+        <p class="hint">Fais glisser le cadre sur la cam du streamer, et tire le rond pour changer sa taille.</p>
+        <div class="camsel" id="camsel"><img src="/frame/${encodeURIComponent(current.id)}?t=${ed.frameT}" alt="Image de la vidéo d'origine" draggable="false">
+          <div class="rect" id="camRect"><i></i></div></div>
+        <button class="btn ghost" data-frame>Prendre l'image du moment affiché</button>` : ""}
+      ${ed.cam !== "none" ? `<div class="posrow"><button class="btn" data-pos="top" aria-pressed="${ed.pos === "top"}">Cam au-dessus</button><button class="btn" data-pos="bottom" aria-pressed="${ed.pos === "bottom"}">Cam en dessous</button></div>` : `<p class="hint">Toute l'image sera gardée, sur un fond flouté.</p>`}
+    </div>
+    <div class="ed">
+      <h4>Accroche à l'écran</h4>
+      <p class="hint">Gros texte affiché pendant les 2,5 premières secondes. Laisse vide pour ne rien afficher.</p>
+      <input type="text" id="edHook" maxlength="120" value="${esc(ed.hook)}" placeholder="Ex. : Il ne s'attendait pas à ça…">
+    </div>
+    <div class="rerender">
+      <button class="btn sun" id="edGo" ${busy || !dur ? "disabled" : ""}>${busy ? `${ICON.spin} Montage en cours…` : "Remonter la vidéo"}</button>
+    </div>
+    ${job?.state === "error" ? `<div class="msg bad">${esc(job.message)}</div>` : ""}`;
+  placeRect();
+}
+
+function placeRect() {
+  const r = $("#camRect"); if (!r) return;
+  const [x, y, w, h] = ed.rect;
+  Object.assign(r.style, { left: `${x * 100}%`, top: `${y * 100}%`, width: `${w * 100}%`, height: `${h * 100}%` });
+}
+
+// Glisser / redimensionner le cadre de la cam
+let drag = null;
+document.addEventListener("pointerdown", e => {
+  const rect = e.target.closest("#camRect"); if (!rect) return;
+  const box = $("#camsel").getBoundingClientRect();
+  drag = { resize: e.target.tagName === "I", x0: e.clientX, y0: e.clientY, r0: [...ed.rect], box };
+  rect.setPointerCapture(e.pointerId); e.preventDefault();
+});
+document.addEventListener("pointermove", e => {
+  if (!drag) return;
+  const dx = (e.clientX - drag.x0) / drag.box.width, dy = (e.clientY - drag.y0) / drag.box.height;
+  let [x, y, w, h] = drag.r0;
+  if (drag.resize) { w = Math.min(Math.max(w + dx, .05), 1 - x); h = Math.min(Math.max(h + dy, .05), 1 - y); }
+  else { x = Math.min(Math.max(x + dx, 0), 1 - w); y = Math.min(Math.max(y + dy, 0), 1 - h); }
+  ed.rect = [x, y, w, h]; placeRect();
+});
+document.addEventListener("pointerup", () => { drag = null; });
+
+P().addEventListener("loadedmetadata", () => {
+  if ($("#pEdit").hidden || !ed) return;
+  ed.dur = P().duration;
+  if (ed.end == null || ed.end > ed.dur) ed.end = ed.dur;
+  P().currentTime = ed.start;
+  renderEdit();
+});
+P().addEventListener("timeupdate", () => {
+  const h = $("#tlHead"); if (!h || !ed?.dur) return;
+  h.style.left = `${(P().currentTime / ed.dur) * 100}%`;
+});
+
+$("#studio").addEventListener("click", async e => {
+  const m = e.target.closest("[data-mode]");
+  if (m) return setMode(m.dataset.mode);
+  if (!ed || !current) return;
+  const tl = e.target.closest("#tl");
+  if (tl && ed.dur) { const b = tl.getBoundingClientRect(); P().currentTime = ((e.clientX - b.left) / b.width) * ed.dur; return; }
+  const mk = e.target.closest("[data-mark]");
+  if (mk) {
+    const t = P().currentTime;
+    if (mk.dataset.mark === "start") ed.start = Math.min(t, (ed.end ?? ed.dur) - 1);
+    else ed.end = Math.max(t, ed.start + 1);
+    ed.hook = $("#edHook")?.value ?? ed.hook;
+    return renderEdit();
+  }
+  const cm = e.target.closest("[data-cammode]");
+  if (cm) { ed.cam = cm.dataset.cammode; ed.hook = $("#edHook")?.value ?? ed.hook; if (ed.cam === "manual") ed.frameT = Math.round(P().currentTime * 10) / 10 || 1.5; return renderEdit(); }
+  const ps = e.target.closest("[data-pos]");
+  if (ps) { ed.pos = ps.dataset.pos; ed.hook = $("#edHook")?.value ?? ed.hook; return renderEdit(); }
+  if (e.target.closest("[data-frame]")) { ed.frameT = Math.round(P().currentTime * 10) / 10; ed.hook = $("#edHook")?.value ?? ed.hook; return renderEdit(); }
+  if (e.target.closest("#edGo")) {
+    ed.hook = $("#edHook").value;
+    const body = { start: ed.start, end: ed.end, hook: ed.hook, cam_position: ed.pos,
+                   cam: ed.cam === "manual" ? ed.rect : ed.cam };
+    await api(`/api/clip/${encodeURIComponent(current.id)}/rerender`, body);
+    await waitJob(`render:${current.id}`, "Vidéo remontée");
+  }
+});
+
+async function waitJob(key, okMsg) {
+  S = await api("/api/state"); renderEdit(); renderTiktok();
+  while (S.jobs?.[key]?.state === "running") {
+    await new Promise(r => setTimeout(r, 1500));
+    S = await api("/api/state"); renderEdit(); renderTiktok();
+  }
+  const j = S.jobs?.[key];
+  if (j?.state === "done") {
+    toast(j.message || okMsg);
+    if (key.startsWith("render:") && current) {
+      current = S.clips.find(x => x.id === current.id) || current;
+      ed = null; setMode("publish");
+    }
+  } else if (j?.state === "error") toast("Erreur : " + j.message);
+  render();
+}
+
+// ---------- TikTok dans la fiche ----------
+function renderTiktok() {
+  if (!current) return;
+  const tk = S.tiktok || {}, job = S.jobs?.[`tiktok:${current.id}`];
+  const sent = current.status === "sent" || job?.state === "done";
+  if (tk.connected) {
+    $("#sTiktokHint").textContent = sent ? "Brouillon envoyé : ouvre TikTok, onglet Boîte de réception, puis colle la légende."
+      : "Envoie la vidéo en brouillon sur ton compte, puis colle la légende dans l'app TikTok.";
+    $("#sTiktokBtns").innerHTML = job?.state === "running"
+      ? `<button class="btn" disabled>${ICON.spin} Envoi…</button>`
+      : `<button class="btn ${sent ? "" : "sun"}" id="sSend">${sent ? "Renvoyer" : "Envoyer en brouillon"}</button>`;
+    if (sent) stepDone("tiktok");
+  } else {
+    $("#sTiktokHint").textContent = "Importe la vidéo, colle la légende. (Connecte TikTok dans Réglages pour l'envoi direct.)";
+    $("#sTiktokBtns").innerHTML = `<button class="btn" id="sTiktok">Ouvrir TikTok ↗</button>`;
+  }
+}
+$("#sTiktokBtns").addEventListener("click", async e => {
+  if (!current) return;
+  if (e.target.closest("#sTiktok")) { openExt(TIKTOK_UPLOAD); stepDone("tiktok"); }
+  if (e.target.closest("#sSend")) {
+    await api(`/api/clip/${encodeURIComponent(current.id)}/tiktok`, {});
+    await waitJob(`tiktok:${current.id}`, "Brouillon envoyé");
+  }
+});
 
 // ---------- premier lancement ----------
 const W_STEPS = 4;
@@ -814,6 +1111,7 @@ document.addEventListener("click", e => {
 });
 $("#folderBtn").onclick = () => api("/api/open-folder", {});
 $("#twitchPill").onclick = goSettings;
+$("#updatePill").onclick = () => S.update && openExt(S.update.url);
 $("#runBtn").onclick = runNow;
 $("#autoToggle").onclick = async () => {
   const on = S.schedule != null;
@@ -832,6 +1130,8 @@ $("#tabs").onclick = e => {
   tab = b.dataset.tab; settingsDraft = null; rerender();
 };
 $("#view").addEventListener("click", async e => {
+  const sc = e.target.closest("[data-scroll]");
+  if (sc) { const g = $("#view .grid"); return g.scrollBy({ left: (sc.dataset.scroll === "next" ? 1 : -1) * g.clientWidth * .8 }); }
   const cardEl = e.target.closest(".card");
   if (cardEl) return openStudio(cardEl.dataset.id);
   const rm = e.target.closest("[data-rm]");
@@ -844,6 +1144,26 @@ $("#view").addEventListener("click", async e => {
     if (v !== "off") settingsDraft.facecam_position = v;
     return rerender();
   }
+  const tk = e.target.closest("[data-tk]");
+  if (tk) {
+    collectDraft();
+    if (tk.dataset.tk === "login") {
+      await api("/api/settings", { tiktok_client_key: settingsDraft.tiktok_client_key, tiktok_client_secret: settingsDraft.tiktok_client_secret || "" });
+      await api("/api/tiktok/login", {});
+      toast("Autorise l'app dans la page TikTok qui vient de s'ouvrir");
+      const until = Date.now() + 300000;
+      do { await new Promise(r => setTimeout(r, 2000)); S = await api("/api/state"); }
+      while (S.jobs?.["tiktok:login"]?.state === "running" && Date.now() < until);
+      const j = S.jobs?.["tiktok:login"];
+      toast(j?.state === "done" ? "Compte TikTok connecté" : "Connexion TikTok : " + (j?.message || "pas de réponse"));
+    } else { await api("/api/tiktok/logout", {}); toast("Compte TikTok déconnecté"); S = await api("/api/state"); }
+    const keep = settingsDraft; rerender(); settingsDraft = keep; return;
+  }
+  if (e.target.closest("[data-check-update]")) {
+    const r = await api("/api/update-check", {});
+    S.update = r.update; toast(r.update ? `Version ${r.update.latest} disponible` : "Tu as la dernière version"); collectDraft(); return rerender();
+  }
+  if (e.target.closest("[data-update]")) return openExt(S.update.url);
   if (e.target.closest("[data-test-twitch]")) {
     collectDraft();
     const m = $("#twMsg"); m.className = "msg"; m.textContent = "Vérification…";
@@ -879,7 +1199,6 @@ $("#sReveal").onclick = async () => {
   try { await api(`/api/clip/${encodeURIComponent(current.id)}/reveal`, {}); stepDone("reveal"); }
   catch (err) { toast(err.message); }
 };
-$("#sTiktok").onclick = () => { openExt(TIKTOK_UPLOAD); stepDone("tiktok"); };
 $("#sActions").onclick = async e => {
   const b = e.target.closest("[data-act]"); if (!b || !current) return;
   await saveCaption();

@@ -60,10 +60,17 @@ def login(cfg: dict):
             pass
 
     server = HTTPServer(("localhost", t["redirect_port"]), Handler)
+    server.timeout = 2
     print("Ouverture de TikTok dans le navigateur pour autoriser l'app…")
     webbrowser.open(url)
-    while "code" not in result and "error" not in result:
-        server.handle_request()
+    deadline = time.time() + 300
+    try:
+        while "code" not in result and "error" not in result:
+            if time.time() > deadline:
+                raise SystemExit("Connexion TikTok abandonnée : pas de réponse au bout de 5 minutes.")
+            server.handle_request()
+    finally:
+        server.server_close()
 
     if "error" in result:
         raise SystemExit(f"Autorisation refusée : {result.get('error_description', result['error'])}")
@@ -87,7 +94,7 @@ def login(cfg: dict):
 
 def access_token(cfg: dict) -> str:
     if not TOKEN_FILE.exists():
-        raise RuntimeError("TikTok non connecté : lance `uv run python -m clipper login`.")
+        raise RuntimeError("TikTok n'est pas connecté : Réglages → TikTok → Connecter mon compte.")
     tok = json.loads(TOKEN_FILE.read_text())
     if time.time() < tok["expires_at"]:
         return tok["access_token"]

@@ -128,6 +128,25 @@ def _subtitle_png(text: str, y: int, out: Path) -> Path:
     return out
 
 
+def _hook_png(text: str, y_center: int, out: Path) -> Path:
+    """Accroche des premières secondes : gros texte noir sur un bandeau blanc arrondi."""
+    img = _blank()
+    d = ImageDraw.Draw(img)
+    font = _font(70, 900)
+    lines = textwrap.wrap(text.strip(), width=20)[:3] or [""]
+    line_h, pad_x, pad_y = 86, 44, 30
+    widths = [d.textlength(l, font=font) for l in lines]
+    box_w = min(max(widths) + 2 * pad_x, W - 80)
+    box_h = len(lines) * line_h + 2 * pad_y
+    x0, y0 = (W - box_w) / 2, y_center - box_h / 2
+    d.rounded_rectangle((x0 + 8, y0 + 12, x0 + box_w + 8, y0 + box_h + 12), radius=34, fill=(0, 0, 0, 110))
+    d.rounded_rectangle((x0, y0, x0 + box_w, y0 + box_h), radius=34, fill=(255, 255, 255, 250))
+    for i, line in enumerate(lines):
+        d.text((W / 2, y0 + pad_y + line_h * (i + 0.5)), line, font=font, fill=(12, 8, 20), anchor="mm")
+    img.save(out)
+    return out
+
+
 def _subtitle_track(chunks, duration: float, y: int, work: Path) -> Path:
     """Fichier concat ffmpeg : une image transparente par morceau de phrase."""
     blank = work / "sub_blank.png"
@@ -149,9 +168,18 @@ def _subtitle_track(chunks, duration: float, y: int, work: Path) -> Path:
 # ---------- montage ----------
 
 def render(src: Path, out: Path, streamer: str, chunks, facecam=None, zoom: float = 1.25,
-           cam_position: str = "top") -> Path:
+           cam_position: str = "top", start: float = 0.0, end: float | None = None,
+           hook: str = "", hook_seconds: float = 2.5) -> Path:
+    """Monte la vidéo verticale. start/end : extrait de la source à garder (en secondes).
+    hook : texte affiché en gros pendant les premières secondes (vide = aucun)."""
     info = probe(src)
-    dur = info["duration"]
+    start = max(0.0, min(start or 0.0, info["duration"] - 1))
+    end = min(end or info["duration"], info["duration"])
+    if end - start < 1:
+        end = min(start + 1, info["duration"])
+    dur = end - start
+    # Sous-titres recalés sur l'extrait gardé
+    chunks = [(max(a, start) - start, min(b, end) - start, t) for a, b, t in (chunks or []) if b > start and a < end]
     work = out.parent / f".{out.stem}_work"
     work.mkdir(parents=True, exist_ok=True)
 
@@ -171,10 +199,10 @@ def render(src: Path, out: Path, streamer: str, chunks, facecam=None, zoom: floa
         game = f"[0:v]crop='min(iw,ih*{W}/{game_h})':ih,scale={W}:{game_h}[game]"
         if cam_position == "bottom":
             video = f"{cam};{game};[game][cam]vstack[base]"
-            credit_y, sub_y = game_h - 38, game_h - 300
+            credit_y, sub_y, hook_y = game_h - 38, game_h - 300, round(game_h * 0.36)
         else:
             video = f"{cam};{game};[cam][game]vstack[base]"
-            credit_y, sub_y = cam_h - 38, cam_h + 220
+            credit_y, sub_y, hook_y = cam_h - 38, cam_h + 220, cam_h + round(game_h * 0.55)
     else:
         video = (
             f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
@@ -185,15 +213,23 @@ def render(src: Path, out: Path, streamer: str, chunks, facecam=None, zoom: floa
         fg_h = round(W / (info["width"] / zoom) * info["height"])
         credit_y = (H - fg_h) // 2 - 130
         sub_y = (H + fg_h) // 2 + 200
+        hook_y = max((H - fg_h) // 2 - 330, 260)
 
-    inputs = ["-i", str(src), "-loop", "1", "-i", str(_credit_png(streamer, credit_y, work / "credit.png"))]
+    inputs = ["-ss", f"{start:.3f}", "-to", f"{end:.3f}", "-i", str(src),
+              "-loop", "1", "-i", str(_credit_png(streamer, credit_y, work / "credit.png"))]
     graph = video + ";[base][1:v]overlay=0:0[v1]"
+    n, last = 2, "v1"
     if chunks:
         subs = _subtitle_track(chunks, dur, sub_y, work)
         inputs += ["-f", "concat", "-safe", "0", "-i", str(subs)]
-        graph += ";[v1][2:v]overlay=0:0:format=auto[v]"
-    else:
-        graph += ";[v1]null[v]"
+        graph += f";[{last}][{n}:v]overlay=0:0:format=auto[v{n}]"
+        last, n = f"v{n}", n + 1
+    if hook.strip():
+        inputs += ["-loop", "1", "-i", str(_hook_png(hook, hook_y, work / "hook.png"))]
+        graph += (f";[{n}:v]format=rgba,fade=t=out:st={max(hook_seconds - 0.3, 0):.2f}:d=0.3:alpha=1[hk]"
+                  f";[{last}][hk]overlay=0:0:enable='lt(t,{hook_seconds:.2f})'[v{n}]")
+        last, n = f"v{n}", n + 1
+    graph += f";[{last}]null[v]"
 
     cmd = [
         ffmpeg(), "-y", "-hide_banner", "-loglevel", "error", *inputs,

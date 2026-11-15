@@ -1,6 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 # Construit l'app : uv run pyinstaller packaging/clipper.spec --noconfirm
 # Mac : dist/Grand Clip Auto.app    Windows : dist/Grand Clip Auto/Grand Clip Auto.exe
+import re
 import sys
 from pathlib import Path
 
@@ -8,7 +9,7 @@ from PyInstaller.utils.hooks import collect_all, collect_data_files, collect_dyn
 
 ROOT = Path(SPECPATH).parent
 NAME = "Grand Clip Auto"
-VERSION = "0.1.0"
+VERSION = re.search(r'__version__ = "([^"]+)"', (ROOT / "clipper" / "__init__.py").read_text()).group(1)
 
 datas = [
     (str(ROOT / "ui"), "ui"),
