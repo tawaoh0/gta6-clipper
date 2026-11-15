@@ -1,0 +1,46 @@
+# Copie ce fichier en config.toml et remplis les clés.
+# config.toml contient des secrets : ne le partage pas.
+
+[twitch]
+# https://dev.twitch.tv/console/apps -> "Register Your Application"
+client_id = ""
+client_secret = ""
+game_name = "Grand Theft Auto VI"   # nom exact de la catégorie Twitch
+lookback_hours = 6        # on regarde les clips créés sur les X dernières heures
+min_views = 30            # vues minimum pour qu'un clip soit retenu
+min_duration = 8          # secondes
+max_duration = 60
+
+[streamers]
+# Liste blanche : logins Twitch (ce qui est dans l'URL twitch.tv/<login>)
+# des streamers qui t'ont donné leur accord.
+whitelist = ["login_streamer_1", "login_streamer_2"]
+
+[streamers.facecam]
+# La facecam est détectée toute seule. Si la détection se trompe pour un streamer,
+# force sa position ici en fractions de l'image [x, y, largeur, hauteur].
+# Si aucune cam n'est trouvée : jeu au centre sur fond flouté.
+# login_streamer_1 = [0.0, 0.0, 0.25, 0.30]
+
+[pipeline]
+clips_per_run = 3         # nouveaux clips montés à chaque passage
+drafts_per_day = 5        # limite TikTok : 5 brouillons en attente max par 24 h
+ready_expiry_hours = 12   # un clip monté mais pas envoyé après 12 h est abandonné
+language = "fr"           # langue des sous-titres ("auto" pour détecter)
+whisper_model = "small"   # tiny / base / small / medium (plus gros = plus précis, plus lent)
+subtitles = true
+zoom = 1.25               # zoom du jeu dans le montage flouté (1.0 = image entière)
+facecam = "auto"          # "auto" = cam détectée et découpée ; "off" = toujours fond flouté
+facecam_position = "top"  # "top" = cam au-dessus du jeu ; "bottom" = cam en dessous
+
+[tiktok]
+enabled = true            # false = on produit seulement les MP4 dans output/
+# https://developers.tiktok.com -> ton app -> Login Kit (Desktop) + Content Posting API
+client_key = ""
+client_secret = ""
+redirect_port = 3455      # à déclarer dans l'app : http://localhost:3455/callback/
+
+[claude]
+enabled = true            # false = légende générée par un modèle de texte simple
+model = "claude-opus-5-5"
+# Clé lue dans la variable d'environnement ANTHROPIC_API_KEY (ou profil `ant auth login`)

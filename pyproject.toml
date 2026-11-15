@@ -1,0 +1,24 @@
+[project]
+name = "gta6-clipper"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "anthropic>=2.8.0",
+    "av<16",
+    "desktop-notifier>=6.2.0",
+    "faster-whisper>=1.2.1",
+    "filelock>=4.2.10",
+    "imageio-ffmpeg>=0.8.1",
+    "opencv-python-headless<5",
+    "pillow>=13.0.0",
+    "platformdirs>=4.14.5",
+    "pydantic>=2.14.3",
+    "pywebview>=6.2.1",
+    "requests>=2.34.2",
+    "yt-dlp>=2026.10.26",
+]
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.22.3",
+]

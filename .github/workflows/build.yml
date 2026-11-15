@@ -1,0 +1,51 @@
+# Fabrique l'app Mac (.dmg) et l'installateur Windows (.exe).
+# Se lance à la main (onglet Actions → Build → Run workflow) ou quand on pousse un tag v*.
+name: Build
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14        # Mac Apple Silicon
+            artifact: GTA6-Clipper-mac
+          - os: windows-latest
+            artifact: GTA6-Clipper-windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv python install 3.12
+      - run: uv sync --frozen
+      - name: Icônes
+        run: uv run python packaging/make_icon.py
+      - name: PyInstaller
+        run: uv run pyinstaller packaging/clipper.spec --noconfirm --distpath dist --workpath build
+      - name: DMG (Mac)
+        if: runner.os == 'macOS'
+        run: bash packaging/make_dmg.sh
+      - name: Installateur (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install innosetup -y --no-progress
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\windows.iss
+        shell: pwsh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            dist/*.dmg
+            dist/*setup.exe
+      - name: Release (tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.dmg
+            dist/*setup.exe

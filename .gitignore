@@ -1,0 +1,11 @@
+config.toml
+data/
+output/
+.venv/
+__pycache__/
+build/
+dist/
+*.dmg
+build.log
+.DS_Store
+*.tmp
