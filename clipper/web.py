@@ -137,6 +137,7 @@ def state() -> dict:
             "claude_key_set": bool(c.get("api_key")),
             "hook_on_screen": p.get("hook_on_screen", True),
             "remove_burned_subs": p.get("remove_burned_subs", True),
+            "smart_cut": p.get("smart_cut", True),
             "tiktok_client_key": cfg["tiktok"]["client_key"],
             "tiktok_secret_set": bool(cfg["tiktok"]["client_secret"]),
         },
@@ -160,6 +161,7 @@ SETTINGS = {  # champ de l'interface -> (section, clé, type)
     "claude_api_key": ("claude", "api_key", str),
     "hook_on_screen": ("pipeline", "hook_on_screen", bool),
     "remove_burned_subs": ("pipeline", "remove_burned_subs", bool),
+    "smart_cut": ("pipeline", "smart_cut", bool),
     "tiktok_client_key": ("tiktok", "client_key", str),
     "tiktok_client_secret": ("tiktok", "client_secret", str),
 }

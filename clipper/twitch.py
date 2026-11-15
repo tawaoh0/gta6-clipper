@@ -96,12 +96,16 @@ def find_candidates(cfg: dict, already_seen: set[str]) -> list[dict]:
     for c in found:
         c["game_name"] = names.get(c["game_id"], "")
     found.sort(key=lambda c: c["score"], reverse=True)
-    kept, moments = [], set()
+    kept, moments = [], {}
     for c in found:
         if c.get("vod_offset") is not None:
             key = (c["login"], c.get("video_id"), int(c["vod_offset"]) // 120)
             if key in moments:
+                # Plusieurs spectateurs ont clippé ce moment : on retient l'ensemble de leurs passages.
+                best = moments[key]
+                a, b = best.get("vod_range") or (best["vod_offset"], best["vod_offset"] + best["duration"])
+                best["vod_range"] = (min(a, c["vod_offset"]), max(b, c["vod_offset"] + c["duration"]))
                 continue
-            moments.add(key)
+            moments[key] = c
         kept.append(c)
     return kept

@@ -43,6 +43,7 @@ def find_facecam(cfg, login: str, src: Path):
 def prepare(cfg, conn, clip) -> bool:
     from .caption import write_caption
     from .media import download, render, transcribe
+    from .moment import best_range, download_window, window as window_of
 
     p = cfg["pipeline"]
     day_dir = OUTPUT / datetime.now().strftime("%Y-%m-%d")
@@ -51,11 +52,30 @@ def prepare(cfg, conn, clip) -> bool:
     work.mkdir(parents=True, exist_ok=True)
     try:
         log(f"⬇  {clip['broadcaster_name']} — « {clip['title']} » ({clip['view_count']} vues, {clip['score']}/h)")
-        src = download(clip["url"], work)
+        src, clip_start, clip_end = None, 0.0, float(clip["duration"])
+        win = window_of(clip) if p.get("smart_cut", True) else None
+        if win:
+            try:
+                src = download_window(clip["video_id"], *win, work)
+                clip_start = clip["vod_offset"] - win[0]
+                clip_end = clip_start + clip["duration"]
+                log(f"   passage de VOD récupéré ({win[1] - win[0]:.0f} s autour du clip)")
+            except Exception as e:
+                why = "VOD réservée aux abonnés" if "subscriber" in str(e) else "VOD indisponible"
+                log(f"   {why} : on garde le clip tel quel")
+                win, src = None, None
+        if src is None:
+            src = download(clip["url"], work)
         transcript, chunks = "", []
         if p["subtitles"]:
             log("   sous-titres… (le premier passage télécharge le modèle, ~500 Mo, une seule fois)")
             transcript, chunks = transcribe(src, p["whisper_model"], p["language"])
+        start, end, cut_reason = clip_start, clip_end, "découpe du spectateur"
+        if win:
+            start, end, cut_reason = best_range(src, chunks, clip_start, clip_end,
+                                                float(cfg["twitch"]["max_duration"]))
+            log(f"   découpe : {cut_reason} ({start:.1f} → {end:.1f} s)")
+            transcript = " ".join(t for a, b, t in chunks if b > start and a < end) or transcript
         facecam = find_facecam(cfg, clip["login"], src)
         band = None
         if p.get("remove_burned_subs", True) and chunks:
@@ -68,7 +88,7 @@ def prepare(cfg, conn, clip) -> bool:
         cam_position = p.get("facecam_position", "top")
         render(src, out, clip["broadcaster_name"], chunks, facecam=facecam, zoom=p["zoom"],
                cam_position=cam_position, hook=hook, hook_seconds=p.get("hook_seconds", 2.5),
-               burned_band=band)
+               burned_band=band, start=start, end=end)
         out.with_suffix(".txt").write_text(caption, encoding="utf-8")
         # On garde la vidéo d'origine quelques jours pour pouvoir ajuster et remonter le clip.
         kept = SOURCES / f"{clip['id']}{src.suffix}"
@@ -77,7 +97,8 @@ def prepare(cfg, conn, clip) -> bool:
         journal.insert(conn, clip, status, video_path=str(out), caption=caption, ready_at=time.time(),
                        source_path=str(kept), chunks=json.dumps(chunks), cam_position=cam_position,
                        facecam=json.dumps(facecam) if facecam else None, hook=hook,
-                       burned_band=json.dumps(band) if band else None, trim_start=0.0, trim_end=None, duration=float(clip.get("duration") or 0))
+                       burned_band=json.dumps(band) if band else None, trim_start=start, trim_end=end,
+                       clip_start=clip_start, clip_end=clip_end, cut_reason=cut_reason, duration=float(clip.get("duration") or 0))
         log(f"🎬 monté : {out.name}")
         return True
     except Exception as e:

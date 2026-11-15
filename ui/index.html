@@ -327,6 +327,13 @@ dialog[open] .studio { animation: pop .35s cubic-bezier(.2, .9, .25, 1.15) both;
 .trim .btn { padding: 7px 10px; font-size: 12.5px; }
 .tl { position: relative; height: 34px; border-radius: 8px; background: rgba(255, 255, 255, .05); border: 1px solid var(--line); cursor: pointer; }
 .tl .keep { position: absolute; top: 0; bottom: 0; background: rgba(255, 46, 136, .25); border-left: 3px solid var(--sun-1); border-right: 3px solid var(--sun-2); }
+.tl .orig { position: absolute; top: 4px; bottom: 4px; border: 1.5px dashed rgba(155, 92, 255, .9); border-radius: 5px; background: rgba(155, 92, 255, .12); }
+.legend { display: flex; align-items: center; gap: 14px; font: 600 11px var(--mono); color: var(--muted); flex-wrap: wrap; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 14px; height: 10px; border-radius: 3px; display: inline-block; }
+.legend i.k { background: rgba(255, 46, 136, .5); border: 1px solid var(--sun-1); }
+.legend i.o { border: 1.5px dashed rgba(155, 92, 255, .9); }
+.legend .btn { margin-left: auto; padding: 6px 10px; font-size: 12px; }
 .tl .head { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #fff; border-radius: 2px; }
 .seg.two { grid-template-columns: repeat(3, 1fr); margin: 0; }
 .seg.two button { flex-direction: row; justify-content: center; padding: 9px 6px; }
@@ -676,6 +683,8 @@ function renderSettings() {
         ${seg("bottom", "Cam en dessous", '<span class="mini"><i class="g"></i><i class="c"></i></span>')}
         ${seg("off", "Sans cam", '<span class="mini"><i class="b"></i></span>')}
       </div>
+      <label class="consent-line"><input type="checkbox" data-b="smart_cut" ${d.smart_cut ? "checked" : ""}>
+        <span><b>Recadrer sur le meilleur moment</b><br><small>L'app récupère quelques secondes avant et après le clip dans la VOD (si elle est publique), puis cale le début et la fin sur le moment fort. Tu peux toujours changer dans « Ajuster la vidéo ».</small></span></label>
       <label class="consent-line"><input type="checkbox" data-b="remove_burned_subs" ${d.remove_burned_subs ? "checked" : ""}>
         <span><b>Retirer les sous-titres du stream</b><br><small>Si le streamer a déjà ses sous-titres à l'image, on coupe cette bande pour éviter d'en avoir deux.</small></span></label>
       <label class="consent-line"><input type="checkbox" data-b="hook_on_screen" ${d.hook_on_screen ? "checked" : ""}>
@@ -870,8 +879,9 @@ function renderEdit() {
   pane.innerHTML = `
     <div class="ed">
       <h4>Début et fin</h4>
-      <p class="hint">Lis la vidéo d'origine à gauche, puis place le début et la fin à l'endroit voulu.</p>
-      <div class="tl" id="tl"><div class="keep" style="left:${pct(ed.start)}%;width:${pct(end) - pct(ed.start)}%"></div><div class="head" id="tlHead"></div></div>
+      <p class="hint">${current.cut_reason && current.clip_end ? `Choix automatique : ${esc(current.cut_reason)}. ` : ""}Lis la vidéo à gauche, puis place le début et la fin où tu veux.</p>
+      <div class="tl" id="tl">${current.clip_end ? `<div class="orig" title="Découpe du spectateur sur Twitch" style="left:${pct(current.clip_start)}%;width:${pct(current.clip_end) - pct(current.clip_start)}%"></div>` : ""}<div class="keep" style="left:${pct(ed.start)}%;width:${pct(end) - pct(ed.start)}%"></div><div class="head" id="tlHead"></div></div>
+      ${current.clip_end ? `<div class="legend"><span><i class="k"></i>Gardé</span><span><i class="o"></i>Clip du spectateur</span><button class="btn ghost" data-orig>Revenir au clip du spectateur</button></div>` : ""}
       <div class="trim">
         <div class="t"><div><span>Début</span><b>${sec(ed.start)}</b></div><button class="btn" data-mark="start">Mettre ici</button></div>
         <div class="t"><div><span>Fin</span><b>${dur ? sec(end) : "…"}</b></div><button class="btn" data-mark="end">Mettre ici</button></div>
@@ -947,6 +957,10 @@ $("#studio").addEventListener("click", async e => {
   if (!ed || !current) return;
   const tl = e.target.closest("#tl");
   if (tl && ed.dur) { const b = tl.getBoundingClientRect(); P().currentTime = ((e.clientX - b.left) / b.width) * ed.dur; return; }
+  if (e.target.closest("[data-orig]")) {
+    ed.start = current.clip_start || 0; ed.end = current.clip_end || ed.dur;
+    ed.hook = $("#edHook")?.value ?? ed.hook; return renderEdit();
+  }
   const mk = e.target.closest("[data-mark]");
   if (mk) {
     const t = P().currentTime;
