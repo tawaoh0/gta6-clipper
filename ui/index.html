@@ -676,6 +676,8 @@ function renderSettings() {
         ${seg("bottom", "Cam en dessous", '<span class="mini"><i class="g"></i><i class="c"></i></span>')}
         ${seg("off", "Sans cam", '<span class="mini"><i class="b"></i></span>')}
       </div>
+      <label class="consent-line"><input type="checkbox" data-b="remove_burned_subs" ${d.remove_burned_subs ? "checked" : ""}>
+        <span><b>Retirer les sous-titres du stream</b><br><small>Si le streamer a déjà ses sous-titres à l'image, on coupe cette bande pour éviter d'en avoir deux.</small></span></label>
       <label class="consent-line"><input type="checkbox" data-b="hook_on_screen" ${d.hook_on_screen ? "checked" : ""}>
         <span><b>Accroche à l'écran</b><br><small>La première ligne de la légende s'affiche en gros pendant 2,5 s. Modifiable clip par clip dans « Ajuster la vidéo ».</small></span></label>
       <div class="folder-line">
@@ -847,7 +849,9 @@ function startEdit() {
   const c = current;
   let rect = null;
   try { rect = c.facecam ? JSON.parse(c.facecam) : null; } catch {}
-  ed = { start: c.trim_start || 0, end: c.trim_end || null, dur: null, cam: "keep", rect: rect || [0.02, 0.05, 0.26, 0.3],
+  let band = null;
+  try { band = c.burned_band ? JSON.parse(c.burned_band) : null; } catch {}
+  ed = { burned: band === false ? "keep" : "remove", start: c.trim_start || 0, end: c.trim_end || null, dur: null, cam: "keep", rect: rect || [0.02, 0.05, 0.26, 0.3],
          hadCam: !!rect, pos: c.cam_position || "top", hook: c.hook ?? "", frameT: 1.5 };
 }
 
@@ -883,6 +887,11 @@ function renderEdit() {
           <div class="rect" id="camRect"><i></i></div></div>
         <button class="btn ghost" data-frame>Prendre l'image du moment affiché</button>` : ""}
       ${ed.cam !== "none" ? `<div class="posrow"><button class="btn" data-pos="top" aria-pressed="${ed.pos === "top"}">Cam au-dessus</button><button class="btn" data-pos="bottom" aria-pressed="${ed.pos === "bottom"}">Cam en dessous</button></div>` : `<p class="hint">Toute l'image sera gardée, sur un fond flouté.</p>`}
+    </div>
+    <div class="ed">
+      <h4>Sous-titres du stream</h4>
+      <p class="hint">Si le streamer affiche déjà ses propres sous-titres, l'app coupe la bande où ils se trouvent pour ne garder que les nôtres.</p>
+      <div class="posrow"><button class="btn" data-burned="remove" aria-pressed="${ed.burned === "remove"}">Les retirer</button><button class="btn" data-burned="keep" aria-pressed="${ed.burned === "keep"}">Les garder</button></div>
     </div>
     <div class="ed">
       <h4>Accroche à l'écran</h4>
@@ -948,12 +957,14 @@ $("#studio").addEventListener("click", async e => {
   }
   const cm = e.target.closest("[data-cammode]");
   if (cm) { ed.cam = cm.dataset.cammode; ed.hook = $("#edHook")?.value ?? ed.hook; if (ed.cam === "manual") ed.frameT = Math.round(P().currentTime * 10) / 10 || 1.5; return renderEdit(); }
+  const bu = e.target.closest("[data-burned]");
+  if (bu) { ed.burned = bu.dataset.burned; ed.hook = $("#edHook")?.value ?? ed.hook; return renderEdit(); }
   const ps = e.target.closest("[data-pos]");
   if (ps) { ed.pos = ps.dataset.pos; ed.hook = $("#edHook")?.value ?? ed.hook; return renderEdit(); }
   if (e.target.closest("[data-frame]")) { ed.frameT = Math.round(P().currentTime * 10) / 10; ed.hook = $("#edHook")?.value ?? ed.hook; return renderEdit(); }
   if (e.target.closest("#edGo")) {
     ed.hook = $("#edHook").value;
-    const body = { start: ed.start, end: ed.end, hook: ed.hook, cam_position: ed.pos,
+    const body = { start: ed.start, end: ed.end, hook: ed.hook, cam_position: ed.pos, burned: ed.burned,
                    cam: ed.cam === "manual" ? ed.rect : ed.cam };
     await api(`/api/clip/${encodeURIComponent(current.id)}/rerender`, body);
     await waitJob(`render:${current.id}`, "Vidéo remontée");

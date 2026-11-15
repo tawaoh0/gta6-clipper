@@ -73,12 +73,23 @@ def _rerender(clip_id: str, opts: dict) -> str:
         facecam = [x, y, min(w, 1 - x), min(h, 1 - y)]
     cam_position = opts.get("cam_position") if opts.get("cam_position") in ("top", "bottom") else (r["cam_position"] or "top")
     hook = str(opts.get("hook", r["hook"] or ""))[:120]
+    unknown = r["burned_band"] is None or not json.loads(r["burned_band"])
+    wants = opts.get("burned") == "remove" or (opts.get("burned") is None and cfg["pipeline"].get("remove_burned_subs", True))
+    if unknown and wants:
+        from .burned_subs import detect as find_burned  # ancien clip : on cherche maintenant
+        found, _ = find_burned(src)
+        journal.update(conn, clip_id, burned_band=json.dumps(found or False))
+        r = conn.execute("SELECT * FROM clips WHERE id = ?", (clip_id,)).fetchone()
+    band = json.loads(r["burned_band"]) if r["burned_band"] else None
+    if opts.get("burned") == "keep":
+        band = None
+        journal.update(conn, clip_id, burned_band=json.dumps(False))
 
     out = Path(r["video_path"])
     tmp = out.with_name(out.stem + ".new.mp4")
     render(src, tmp, r["streamer"], json.loads(r["chunks"] or "[]"), facecam=facecam,
            zoom=cfg["pipeline"]["zoom"], cam_position=cam_position, start=start, end=end,
-           hook=hook, hook_seconds=cfg["pipeline"].get("hook_seconds", 2.5))
+           hook=hook, hook_seconds=cfg["pipeline"].get("hook_seconds", 2.5), burned_band=band)
     tmp.replace(out)
     (THUMBS / f"{clip_id}.jpg").unlink(missing_ok=True)
     journal.update(conn, clip_id, trim_start=start, trim_end=end if end < dur - 0.05 else None,

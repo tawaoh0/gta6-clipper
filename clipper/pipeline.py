@@ -57,12 +57,18 @@ def prepare(cfg, conn, clip) -> bool:
             log("   sous-titres… (le premier passage télécharge le modèle, ~500 Mo, une seule fois)")
             transcript, chunks = transcribe(src, p["whisper_model"], p["language"])
         facecam = find_facecam(cfg, clip["login"], src)
+        band = None
+        if p.get("remove_burned_subs", True) and chunks:
+            from .burned_subs import detect as find_burned
+            band, why = find_burned(src)
+            log(f"   {why}")
         caption = write_caption(cfg, clip, transcript)
         hook = caption.split("\n", 1)[0].strip() if p.get("hook_on_screen", True) else ""
         out = day_dir / f"{clip['login']}_{clip['id'][:40]}.mp4"
         cam_position = p.get("facecam_position", "top")
         render(src, out, clip["broadcaster_name"], chunks, facecam=facecam, zoom=p["zoom"],
-               cam_position=cam_position, hook=hook, hook_seconds=p.get("hook_seconds", 2.5))
+               cam_position=cam_position, hook=hook, hook_seconds=p.get("hook_seconds", 2.5),
+               burned_band=band)
         out.with_suffix(".txt").write_text(caption, encoding="utf-8")
         # On garde la vidéo d'origine quelques jours pour pouvoir ajuster et remonter le clip.
         kept = SOURCES / f"{clip['id']}{src.suffix}"
@@ -71,7 +77,7 @@ def prepare(cfg, conn, clip) -> bool:
         journal.insert(conn, clip, status, video_path=str(out), caption=caption, ready_at=time.time(),
                        source_path=str(kept), chunks=json.dumps(chunks), cam_position=cam_position,
                        facecam=json.dumps(facecam) if facecam else None, hook=hook,
-                       trim_start=0.0, trim_end=None, duration=float(clip.get("duration") or 0))
+                       burned_band=json.dumps(band) if band else None, trim_start=0.0, trim_end=None, duration=float(clip.get("duration") or 0))
         log(f"🎬 monté : {out.name}")
         return True
     except Exception as e:

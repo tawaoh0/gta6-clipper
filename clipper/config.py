@@ -48,6 +48,7 @@ DEFAULTS = {
         "auto_minutes": 0,          # 0 = pas de passage automatique
         "hook_on_screen": True,     # accroche en gros pendant les premières secondes
         "hook_seconds": 2.5,
+        "remove_burned_subs": True,  # retirer les sous-titres déjà incrustés par le stream
         "keep_sources_days": 7,     # garder la vidéo d'origine pour pouvoir remonter le clip
     },
     "tiktok": {"enabled": False, "client_key": "", "client_secret": "", "redirect_port": 3455},

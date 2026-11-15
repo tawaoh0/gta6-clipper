@@ -128,23 +128,73 @@ def _subtitle_png(text: str, y: int, out: Path) -> Path:
     return out
 
 
-def _hook_png(text: str, y_center: int, out: Path) -> Path:
-    """Accroche des premières secondes : gros texte noir sur un bandeau blanc arrondi."""
-    img = _blank()
-    d = ImageDraw.Draw(img)
-    font = _font(70, 900)
-    lines = textwrap.wrap(text.strip(), width=20)[:3] or [""]
-    line_h, pad_x, pad_y = 86, 44, 30
-    widths = [d.textlength(l, font=font) for l in lines]
-    box_w = min(max(widths) + 2 * pad_x, W - 80)
-    box_h = len(lines) * line_h + 2 * pad_y
-    x0, y0 = (W - box_w) / 2, y_center - box_h / 2
-    d.rounded_rectangle((x0 + 8, y0 + 12, x0 + box_w + 8, y0 + box_h + 12), radius=34, fill=(0, 0, 0, 110))
-    d.rounded_rectangle((x0, y0, x0 + box_w, y0 + box_h), radius=34, fill=(255, 255, 255, 250))
+def _hook_card(text: str) -> Image.Image:
+    """Bandeau d'accroche : dégradé magenta → orange, texte blanc très gras, ombre, léger penché."""
+    font = _font(76, 900)
+    lines = textwrap.wrap(text.strip().upper(), width=17)[:3] or [""]
+    probe_d = ImageDraw.Draw(_blank())
+    widths = [probe_d.textlength(l, font=font) for l in lines]
+    line_h, pad_x, pad_y = 92, 54, 34
+    bw = int(min(max(widths) + 2 * pad_x, W - 90))
+    bh = int(len(lines) * line_h + 2 * pad_y)
+
+    # Dégradé horizontal dans un rectangle arrondi
+    grad = Image.new("RGBA", (bw, bh))
+    gp = grad.load()
+    c0, c1 = (255, 46, 136), (255, 112, 64)
+    for x in range(bw):
+        t = x / max(bw - 1, 1)
+        col = tuple(round(c0[i] + (c1[i] - c0[i]) * t) for i in range(3)) + (255,)
+        for y in range(bh):
+            gp[x, y] = col
+    mask = Image.new("L", (bw, bh), 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, bw - 1, bh - 1), radius=42, fill=255)
+    card = Image.new("RGBA", (bw, bh), (0, 0, 0, 0))
+    card.paste(grad, (0, 0), mask)
+    d = ImageDraw.Draw(card)
+    d.rounded_rectangle((3, 3, bw - 4, bh - 4), radius=40, outline=(255, 255, 255, 90), width=3)  # liseré
+    d.rounded_rectangle((18, 10, bw - 18, 16), radius=3, fill=(255, 255, 255, 60))               # reflet
     for i, line in enumerate(lines):
-        d.text((W / 2, y0 + pad_y + line_h * (i + 0.5)), line, font=font, fill=(12, 8, 20), anchor="mm")
-    img.save(out)
-    return out
+        cy = pad_y + line_h * (i + 0.5)
+        d.text((bw / 2 + 3, cy + 5), line, font=font, fill=(90, 0, 40, 150), anchor="mm")   # ombre du texte
+        d.text((bw / 2, cy), line, font=font, fill="white", anchor="mm")
+
+    # Ombre portée + inclinaison
+    pad = 60
+    full = Image.new("RGBA", (bw + 2 * pad, bh + 2 * pad), (0, 0, 0, 0))
+    shadow = Image.new("RGBA", full.size, (0, 0, 0, 0))
+    ImageDraw.Draw(shadow).rounded_rectangle((pad + 6, pad + 18, pad + bw + 6, pad + bh + 18), radius=42,
+                                             fill=(0, 0, 0, 150))
+    from PIL import ImageFilter
+    full = Image.alpha_composite(full, shadow.filter(ImageFilter.GaussianBlur(18)))
+    full.alpha_composite(card, (pad, pad))
+    return full.rotate(2.5, resample=Image.BICUBIC, expand=True)
+
+
+def _hook_track(text: str, y_center: int, seconds: float, work: Path) -> Path:
+    """Fichier concat : l'accroche arrive avec un effet « pop », reste, puis s'efface en fondu."""
+    card = _hook_card(text)
+    frame = 1 / 30
+    steps = [(0.5, 1.0), (0.82, 1.0), (1.07, 1.0), (1.0, 1.0)]           # (taille, opacité) à l'entrée
+    hold = max(seconds - len(steps) * frame * 2 - 0.3, 0.3)
+    fade = [(1.0, 0.66), (1.0, 0.33)]
+    lines = []
+    for i, (scale, alpha) in enumerate(steps + [(1.0, 1.0)] + fade):
+        img = _blank()
+        c = card.resize((max(1, round(card.width * scale)), max(1, round(card.height * scale))), Image.LANCZOS)
+        if alpha < 1:
+            c.putalpha(c.getchannel("A").point(lambda v, a=alpha: round(v * a)))
+        img.alpha_composite(c, (round((W - c.width) / 2), round(y_center - c.height / 2)))
+        png = work / f"hook_{i}.png"
+        img.save(png)
+        dur = hold if i == len(steps) else (0.15 if i > len(steps) else frame * 2)
+        lines += [f"file '{png.name}'", f"duration {dur:.3f}"]
+    blank = work / "hook_blank.png"
+    _blank().save(blank)
+    lines += [f"file '{blank.name}'", "duration 0.1", f"file '{blank.name}'"]
+    path = work / "hook.txt"
+    path.write_text("\n".join(lines) + "\n")
+    return path
 
 
 def _subtitle_track(chunks, duration: float, y: int, work: Path) -> Path:
@@ -169,7 +219,7 @@ def _subtitle_track(chunks, duration: float, y: int, work: Path) -> Path:
 
 def render(src: Path, out: Path, streamer: str, chunks, facecam=None, zoom: float = 1.25,
            cam_position: str = "top", start: float = 0.0, end: float | None = None,
-           hook: str = "", hook_seconds: float = 2.5) -> Path:
+           hook: str = "", hook_seconds: float = 2.5, burned_band=None) -> Path:
     """Monte la vidéo verticale. start/end : extrait de la source à garder (en secondes).
     hook : texte affiché en gros pendant les premières secondes (vide = aucun)."""
     info = probe(src)
@@ -182,6 +232,16 @@ def render(src: Path, out: Path, streamer: str, chunks, facecam=None, zoom: floa
     chunks = [(max(a, start) - start, min(b, end) - start, t) for a, b, t in (chunks or []) if b > start and a < end]
     work = out.parent / f".{out.stem}_work"
     work.mkdir(parents=True, exist_ok=True)
+
+    # Sous-titres déjà incrustés par le stream : on coupe la bande où ils se trouvent (haut ou bas).
+    pre, src_h = "", info["height"]
+    if burned_band:
+        b0, b1 = burned_band
+        if b0 >= 0.55:
+            pre, src_h = f"crop=iw:trunc(ih*{b0:.4f}/2)*2:0:0,", round(info["height"] * b0)
+        elif b1 <= 0.45:
+            pre, src_h = (f"crop=iw:trunc(ih*{1 - b1:.4f}/2)*2:0:trunc(ih*{b1:.4f}),",
+                          round(info["height"] * (1 - b1)))
 
     if facecam:
         # Caméra découpée sur toute la largeur, jeu recadré au centre dans le reste.
@@ -196,7 +256,7 @@ def render(src: Path, out: Path, streamer: str, chunks, facecam=None, zoom: floa
                f"scale={W}:{cam_h}:force_original_aspect_ratio=increase,"
                f"crop={W}:{cam_h}:(iw-{W})/2:(ih-{cam_h})*0.2,"  # visage plutôt en haut du cadre
                f"unsharp=5:5:0.6[cam]")
-        game = f"[0:v]crop='min(iw,ih*{W}/{game_h})':ih,scale={W}:{game_h}[game]"
+        game = f"[0:v]{pre}crop='min(iw,ih*{W}/{game_h})':ih,scale={W}:{game_h}[game]"
         if cam_position == "bottom":
             video = f"{cam};{game};[game][cam]vstack[base]"
             credit_y, sub_y, hook_y = game_h - 38, game_h - 300, round(game_h * 0.36)
@@ -205,12 +265,12 @@ def render(src: Path, out: Path, streamer: str, chunks, facecam=None, zoom: floa
             credit_y, sub_y, hook_y = cam_h - 38, cam_h + 220, cam_h + round(game_h * 0.55)
     else:
         video = (
-            f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
+            f"[0:v]{pre}scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
             f"boxblur=24:2,eq=brightness=-0.12[bg];"
-            f"[0:v]crop=iw/{zoom}:ih,scale={W}:-2[fg];"
+            f"[0:v]{pre}crop=iw/{zoom}:ih,scale={W}:-2[fg];"
             f"[bg][fg]overlay=(W-w)/2:(H-h)/2[base]"
         )
-        fg_h = round(W / (info["width"] / zoom) * info["height"])
+        fg_h = round(W / (info["width"] / zoom) * src_h)
         credit_y = (H - fg_h) // 2 - 130
         sub_y = (H + fg_h) // 2 + 200
         hook_y = max((H - fg_h) // 2 - 330, 260)
@@ -225,9 +285,8 @@ def render(src: Path, out: Path, streamer: str, chunks, facecam=None, zoom: floa
         graph += f";[{last}][{n}:v]overlay=0:0:format=auto[v{n}]"
         last, n = f"v{n}", n + 1
     if hook.strip():
-        inputs += ["-loop", "1", "-i", str(_hook_png(hook, hook_y, work / "hook.png"))]
-        graph += (f";[{n}:v]format=rgba,fade=t=out:st={max(hook_seconds - 0.3, 0):.2f}:d=0.3:alpha=1[hk]"
-                  f";[{last}][hk]overlay=0:0:enable='lt(t,{hook_seconds:.2f})'[v{n}]")
+        inputs += ["-f", "concat", "-safe", "0", "-i", str(_hook_track(hook, hook_y, hook_seconds, work))]
+        graph += f";[{last}][{n}:v]overlay=0:0:format=auto:eof_action=pass[v{n}]"
         last, n = f"v{n}", n + 1
     graph += f";[{last}]null[v]"
 

@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS clips (
 EXTRA_COLUMNS = {  # colonnes ajoutées après coup (pour pouvoir remonter un clip)
     "game": "TEXT", "source_path": "TEXT", "chunks": "TEXT", "facecam": "TEXT", "cam_position": "TEXT",
     "trim_start": "REAL", "trim_end": "REAL", "hook": "TEXT", "duration": "REAL",
+    "burned_band": "TEXT",
 }   # colonnes ajoutées après coup
 
 
