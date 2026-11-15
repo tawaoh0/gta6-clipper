@@ -1,4 +1,4 @@
-# GTA6 Clipper
+# Grand Clip Auto
 
 Toutes les 15 minutes, l'outil cherche les clips Twitch GTA 6 qui décollent chez les streamers de ta liste blanche, les monte en vertical avec sous-titres et crédit, écrit la légende, et envoie la vidéo **en brouillon** dans ton TikTok. Toi, tu ouvres la notif TikTok, tu colles la légende et tu publies.
 

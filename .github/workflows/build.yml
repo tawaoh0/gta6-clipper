@@ -14,9 +14,9 @@ jobs:
       matrix:
         include:
           - os: macos-latest    # Mac Apple Silicon
-            artifact: GTA6-Clipper-mac
+            artifact: Grand-Clip-Auto-mac
           - os: windows-latest
-            artifact: GTA6-Clipper-windows
+            artifact: Grand-Clip-Auto-windows
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

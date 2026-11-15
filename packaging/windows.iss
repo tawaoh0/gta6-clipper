@@ -1,5 +1,5 @@
 ; Installateur Windows (Inno Setup 6) : iscc packaging\windows.iss
-#define AppName "GTA6 Clipper"
+#define AppName "Grand Clip Auto"
 #define AppVersion "0.1.0"
 
 [Setup]
@@ -10,7 +10,7 @@ DefaultDirName={localappdata}\Programs\{#AppName}
 DefaultGroupName={#AppName}
 PrivilegesRequired=lowest
 OutputDir=..\dist
-OutputBaseFilename=GTA6-Clipper-windows-setup
+OutputBaseFilename=Grand-Clip-Auto-windows-setup
 SetupIconFile=icon.ico
 UninstallDisplayIcon={app}\{#AppName}.exe
 Compression=lzma2/max

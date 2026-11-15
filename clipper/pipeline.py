@@ -96,7 +96,7 @@ def send_ready(cfg, conn) -> int:
             if "spam_risk" in str(e) or "401" in str(e):
                 break
     if sent:
-        notify("GTA6 Clipper", f"{sent} brouillon(s) dans ta boîte TikTok.")
+        notify("Grand Clip Auto", f"{sent} brouillon(s) dans ta boîte TikTok.")
     return sent
 
 
@@ -126,7 +126,7 @@ def run():
         if cfg["tiktok"]["enabled"]:
             send_ready(cfg, conn)
         elif made:
-            notify("GTA6 Clipper", f"{made} vidéo(s) prête(s) à poster.")
+            notify("Grand Clip Auto", f"{made} vidéo(s) prête(s) à poster.")
         log("✔ terminé")
     except SystemExit as e:  # erreurs de réglage (clés manquantes…) : message lisible
         log(f"❌ {e}")

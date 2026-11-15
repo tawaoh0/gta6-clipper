@@ -1,13 +1,13 @@
 #!/bin/bash
-# Crée dist/GTA6-Clipper-mac.dmg à partir de dist/GTA6 Clipper.app (glisser l'app dans Applications).
+# Crée dist/Grand-Clip-Auto-mac.dmg à partir de dist/Grand Clip Auto.app (glisser l'app dans Applications).
 set -euo pipefail
 cd "$(dirname "$0")/.."
-APP="dist/GTA6 Clipper.app"
-OUT="dist/GTA6-Clipper-mac.dmg"
+APP="dist/Grand Clip Auto.app"
+OUT="dist/Grand-Clip-Auto-mac.dmg"
 STAGE="$(mktemp -d)"
 cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
 rm -f "$OUT"
-hdiutil create -volname "GTA6 Clipper" -srcfolder "$STAGE" -ov -format UDZO "$OUT"
+hdiutil create -volname "Grand Clip Auto" -srcfolder "$STAGE" -ov -format UDZO "$OUT"
 rm -rf "$STAGE"
 echo "✅ $OUT"

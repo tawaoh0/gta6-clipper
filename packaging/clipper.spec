@@ -1,13 +1,13 @@
 # -*- mode: python ; coding: utf-8 -*-
 # Construit l'app : uv run pyinstaller packaging/clipper.spec --noconfirm
-# Mac : dist/GTA6 Clipper.app    Windows : dist/GTA6 Clipper/GTA6 Clipper.exe
+# Mac : dist/Grand Clip Auto.app    Windows : dist/Grand Clip Auto/Grand Clip Auto.exe
 import sys
 from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_all, collect_data_files, collect_dynamic_libs
 
 ROOT = Path(SPECPATH).parent
-NAME = "GTA6 Clipper"
+NAME = "Grand Clip Auto"
 VERSION = "0.1.0"
 
 datas = [
@@ -52,7 +52,7 @@ if sys.platform == "darwin":
         coll,
         name=f"{NAME}.app",
         icon=icon,
-        bundle_identifier="app.gta6clipper.desktop",
+        bundle_identifier="app.grandclipauto.desktop",
         version=VERSION,
         info_plist={
             "CFBundleDisplayName": NAME,

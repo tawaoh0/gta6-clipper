@@ -1,8 +1,8 @@
 """Emplacements et réglages, identiques sur Mac et Windows.
 
 - Réglages, journal, base de clips : dossier de données de l'utilisateur
-  (Mac : ~/Library/Application Support/GTA6 Clipper, Windows : %LOCALAPPDATA%\\GTA6 Clipper).
-- Vidéos montées : dossier Vidéos de l'utilisateur / GTA6 Clipper.
+  (Mac : ~/Library/Application Support/Grand Clip Auto, Windows : %LOCALAPPDATA%\\Grand Clip Auto).
+- Vidéos montées : dossier Vidéos de l'utilisateur / Grand Clip Auto.
 - Ressources (interface, modèles, polices) : dans le projet, ou dans l'app empaquetée.
 """
 import copy
@@ -13,7 +13,7 @@ from pathlib import Path
 
 from platformdirs import user_data_dir, user_videos_dir
 
-APP_NAME = "GTA6 Clipper"
+APP_NAME = "Grand Clip Auto"
 FROZEN = getattr(sys, "frozen", False)
 ROOT = Path(__file__).resolve().parent.parent           # dossier du projet (mode développement)
 RES = Path(getattr(sys, "_MEIPASS", ROOT))               # ressources embarquées
@@ -70,7 +70,28 @@ def _import_old_toml() -> dict:
     return cfg
 
 
+OLD_NAMES = ["GTA6 Clipper"]   # anciens noms de l'app : on reprend leurs dossiers
+
+
+def _migrate_old_name():
+    import sqlite3
+
+    for old in OLD_NAMES:
+        old_data = Path(user_data_dir(old, appauthor=False))
+        old_out = Path(user_videos_dir()) / old
+        if old_data.exists() and not DATA.exists():
+            old_data.rename(DATA)
+        if old_out.exists() and not OUTPUT.exists():
+            old_out.rename(OUTPUT)
+            db = DATA / "clips.db"
+            if db.exists():  # les vidéos ont changé de dossier : on corrige leurs chemins
+                with sqlite3.connect(db) as conn:
+                    conn.execute("UPDATE clips SET video_path = ? || substr(video_path, ?) WHERE video_path LIKE ?",
+                                 (str(OUTPUT), len(str(old_out)) + 1, f"{old_out}%"))
+
+
 def ensure_dirs():
+    _migrate_old_name()
     for d in (DATA, OUTPUT, WORK):
         d.mkdir(parents=True, exist_ok=True)
 

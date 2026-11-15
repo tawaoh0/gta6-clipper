@@ -35,7 +35,7 @@ def main(argv):
             run()
         except Exception:
             traceback.print_exc()
-            notify("GTA6 Clipper", "Erreur pendant le passage, voir le journal.")
+            notify("Grand Clip Auto", "Erreur pendant le passage, voir le journal.")
             sys.exit(1)
     elif cmd == "ui":
         from .web import serve

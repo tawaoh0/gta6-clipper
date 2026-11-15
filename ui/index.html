@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GTA6 Clipper</title>
+<title>Grand Clip Auto</title>
 <style>
 /* Polices embarquées dans l'app (licence OFL), aucune connexion nécessaire */
 @font-face { font-family: "Anton"; src: url(/fonts/Anton-Regular.ttf) format("truetype"); font-display: swap; }
@@ -347,7 +347,7 @@ label.f small { display: block; color: var(--dim); font-size: 12px; margin-top: 
 <div class="wrap">
   <header>
     <div class="brand">
-      <h1>Clip<span>per</span></h1>
+      <h1>Grand Clip <span>Auto</span></h1>
       <div class="tag">Twitch → TikTok</div>
     </div>
     <div class="controls">
@@ -718,7 +718,7 @@ function renderWizard() {
   const w = wizard, dots = `<div class="dots">${Array.from({ length: W_STEPS }, (_, i) => `<i class="${i <= w.step ? "on" : ""}"></i>`).join("")}</div>`;
   let body = "", canNext = true, nextLabel = "Continuer";
   if (w.step === 0) {
-    body = `<h2>Bienvenue dans <span>Clipper</span></h2>
+    body = `<h2>Bienvenue dans <span>Grand Clip Auto</span></h2>
       <p>L'app récupère les meilleurs clips Twitch de tes streamers, les monte en vidéo verticale avec la facecam et des sous-titres, et te prépare la légende. Tu n'as plus qu'à les poster sur TikTok.</p>
       <label class="consent"><input type="checkbox" id="wConsent" ${w.consent ? "checked" : ""}><span>Je ne clipperai que des streamers qui m'ont donné leur accord, et je les créditerai.</span></label>`;
     canNext = w.consent;

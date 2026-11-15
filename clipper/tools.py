@@ -44,9 +44,10 @@ def video_encoder() -> list[str]:
 
 def notify(title: str, message: str):
     try:
+        from .config import APP_NAME
         from desktop_notifier import DesktopNotifierSync
 
-        DesktopNotifierSync(app_name="GTA6 Clipper").send(title=title, message=message)
+        DesktopNotifierSync(app_name=APP_NAME).send(title=title, message=message)
     except Exception:
         pass  # une notification ratée ne doit jamais bloquer un passage
 
