@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-14        # Mac Apple Silicon
+          - os: macos-latest    # Mac Apple Silicon
             artifact: GTA6-Clipper-mac
           - os: windows-latest
             artifact: GTA6-Clipper-windows
