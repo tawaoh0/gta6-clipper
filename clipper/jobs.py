@@ -61,11 +61,14 @@ def _rerender(clip_id: str, opts: dict) -> str:
     if end - start < 1:
         raise RuntimeError("Le clip doit durer au moins 1 seconde.")
 
-    cam_mode = opts.get("cam", "keep")          # "keep" | "none" | [x, y, w, h] (fractions de l'image)
+    cam_mode = opts.get("cam", "keep")          # "keep" | "auto" | "none" | [x, y, w, h] (fractions de l'image)
     if cam_mode == "keep":
         facecam = json.loads(r["facecam"]) if r["facecam"] else None
     elif cam_mode == "none":
         facecam = None
+    elif cam_mode == "auto":
+        from .facecam import detect as find_cam
+        facecam, _ = find_cam(src)
     else:
         x, y, w, h = (min(max(float(v), 0.0), 1.0) for v in cam_mode)
         if w < 0.03 or h < 0.03:
@@ -96,6 +99,23 @@ def _rerender(clip_id: str, opts: dict) -> str:
                    facecam=json.dumps(facecam) if facecam else None, cam_position=cam_position,
                    hook=hook, ready_at=time.time())
     return "Vidéo remontée"
+
+
+def hook_ideas(clip_id: str, start: float | None = None, end: float | None = None) -> list[str]:
+    """Accroches possibles tirées des paroles de l'extrait choisi."""
+    from .hooks import candidates
+
+    r = journal.connect().execute("SELECT * FROM clips WHERE id = ?", (clip_id,)).fetchone()
+    if not r:
+        return []
+    chunks = json.loads(r["chunks"] or "[]")
+    s = start if start is not None else (r["trim_start"] or 0.0)
+    e = end if end is not None else (r["trim_end"] or (chunks[-1][1] if chunks else 0.0))
+    src = Path(r["source_path"]) if can_edit(r) else None
+    ideas = candidates(chunks, s, e, src)
+    if r["title"] and f"« {r['title']} »" not in ideas:
+        ideas.append(r["title"][:70])
+    return ideas
 
 
 # ---------- TikTok ----------

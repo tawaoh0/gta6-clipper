@@ -28,7 +28,9 @@ SYSTEM = """Tu écris les légendes TikTok d'un compte qui publie des clips Twit
 (tous jeux confondus), avec l'accord des streamers. Style : français, direct, drôle si le clip l'est, jamais putaclic \
 mensonger. Tu ne décris que ce qui est réellement dans le clip (titre + transcription fournis). \
 N'invente pas de spoiler, de fuite ou d'info sur le jeu. \
-Tes hashtags doivent coller au jeu indiqué (jamais un autre jeu). Pas de mention de vues ou d'abonnés."""
+Tes hashtags doivent coller au jeu indiqué (jamais un autre jeu). \
+L'accroche (hook) doit venir de ce qui se dit dans le clip : une citation courte et forte du streamer \
+entre « », ou une reformulation fidèle de la situation. Jamais une phrase générique qui irait avec n'importe quel clip. Pas de mention de vues ou d'abonnés."""
 
 
 class Caption(BaseModel):
@@ -40,8 +42,9 @@ def _fallback(clip: dict) -> Caption:
     return Caption(hook=clip["title"][:90], hashtags=[])
 
 
-def write_caption(cfg: dict, clip: dict, transcript: str) -> str:
-    cap = _fallback(clip)
+def write_caption(cfg: dict, clip: dict, transcript: str, hook_hint: str = "") -> str:
+    """hook_hint : accroche tirée du clip (hooks.py), utilisée si Claude n'est pas disponible."""
+    cap = Caption(hook=hook_hint, hashtags=[]) if hook_hint else _fallback(clip)
     if cfg["claude"]["enabled"]:
         try:
             key = cfg["claude"].get("api_key") or None  # sinon : variable ANTHROPIC_API_KEY
@@ -70,7 +73,8 @@ def write_caption(cfg: dict, clip: dict, transcript: str) -> str:
             # TypeError = aucune clé Claude configurée
             print(f"  ⚠ Claude indisponible ({e.__class__.__name__}), légende simple utilisée")
 
-    tags = game_tags(clip.get("game_name", "")) + BASE_TAGS + [t if t.startswith("#") else f"#{t}" for t in cap.hashtags]
+    streamer_tag = "#" + re.sub(r"[^0-9a-z_]", "", clip["login"].lower())
+    tags = game_tags(clip.get("game_name", "")) + [streamer_tag] + BASE_TAGS + [t if t.startswith("#") else f"#{t}" for t in cap.hashtags]
     tags = list(dict.fromkeys(t.lower().replace(" ", "") for t in tags))[:9]
     credit = f"🎥 Clip : {clip['broadcaster_name']} sur Twitch (twitch.tv/{clip['login']})"
     return f"{cap.hook.strip()}\n\n{credit}\n\n{' '.join(tags)}"

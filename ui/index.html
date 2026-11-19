@@ -333,9 +333,13 @@ dialog[open] .studio { animation: pop .35s cubic-bezier(.2, .9, .25, 1.15) both;
 .legend i { width: 14px; height: 10px; border-radius: 3px; display: inline-block; }
 .legend i.k { background: rgba(255, 46, 136, .5); border: 1px solid var(--sun-1); }
 .legend i.o { border: 1.5px dashed rgba(155, 92, 255, .9); }
+.ideas { display: flex; flex-wrap: wrap; gap: 6px; }
+.idea { border: 1px solid rgba(255, 46, 136, .4); background: rgba(255, 46, 136, .1); color: var(--text); border-radius: 999px; padding: 7px 12px; font: 600 12.5px var(--body); text-align: left; }
+.idea:hover { background: rgba(255, 46, 136, .22); }
 .legend .btn { margin-left: auto; padding: 6px 10px; font-size: 12px; }
 .tl .head { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #fff; border-radius: 2px; }
 .seg.two { grid-template-columns: repeat(3, 1fr); margin: 0; }
+.seg.two.four { grid-template-columns: repeat(4, 1fr); }
 .seg.two button { flex-direction: row; justify-content: center; padding: 9px 6px; }
 .camsel { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); user-select: none; touch-action: none; background: #000; }
 .camsel img { display: block; width: 100%; pointer-events: none; }
@@ -890,7 +894,8 @@ function renderEdit() {
     </div>
     <div class="ed">
       <h4>Facecam</h4>
-      <div class="seg two">${camSeg("keep", ed.hadCam ? "Garder" : "Comme avant")}${camSeg("manual", "Placer à la main")}${camSeg("none", "Sans cam")}</div>
+      <div class="seg two four">${camSeg("keep", ed.hadCam ? "Garder" : "Comme avant")}${camSeg("auto", "Redétecter")}${camSeg("manual", "À la main")}${camSeg("none", "Sans cam")}</div>
+      ${ed.cam === "auto" ? `<p class="hint">La cam sera recherchée à nouveau avec la dernière version du détecteur (cadre entier, plusieurs personnes).</p>` : ""}
       ${ed.cam === "manual" ? `
         <p class="hint">Fais glisser le cadre sur la cam du streamer, et tire le rond pour changer sa taille.</p>
         <div class="camsel" id="camsel"><img src="/frame/${encodeURIComponent(current.id)}?t=${ed.frameT}" alt="Image de la vidéo d'origine" draggable="false">
@@ -906,7 +911,9 @@ function renderEdit() {
     <div class="ed">
       <h4>Accroche à l'écran</h4>
       <p class="hint">Gros texte affiché pendant les 2,5 premières secondes. Laisse vide pour ne rien afficher.</p>
-      <input type="text" id="edHook" maxlength="120" value="${esc(ed.hook)}" placeholder="Ex. : Il ne s'attendait pas à ça…">
+      <input type="text" id="edHook" maxlength="120" value="${esc(ed.hook)}" placeholder="Ex. : « Attends, il a fait quoi ?! »">
+      <button class="btn ghost" data-ideas type="button">${ed.ideasLoading ? `${ICON.spin} Recherche…` : "Proposer des accroches tirées du clip"}</button>
+      ${ed.ideas ? (ed.ideas.length ? `<div class="ideas">${ed.ideas.map(t => `<button type="button" class="idea" data-idea="${esc(t)}">${esc(t)}</button>`).join("")}</div>` : `<p class="hint">Pas assez de paroles dans cet extrait pour proposer une phrase.</p>`) : ""}
     </div>
     <div class="rerender">
       <button class="btn sun" id="edGo" ${busy || !dur ? "disabled" : ""}>${busy ? `${ICON.spin} Montage en cours…` : "Remonter la vidéo"}</button>
@@ -971,6 +978,14 @@ $("#studio").addEventListener("click", async e => {
   }
   const cm = e.target.closest("[data-cammode]");
   if (cm) { ed.cam = cm.dataset.cammode; ed.hook = $("#edHook")?.value ?? ed.hook; if (ed.cam === "manual") ed.frameT = Math.round(P().currentTime * 10) / 10 || 1.5; return renderEdit(); }
+  if (e.target.closest("[data-ideas]")) {
+    ed.hook = $("#edHook")?.value ?? ed.hook; ed.ideasLoading = true; renderEdit();
+    try { ed.ideas = (await api(`/api/clip/${encodeURIComponent(current.id)}/hooks`, { start: ed.start, end: ed.end })).ideas; }
+    finally { ed.ideasLoading = false; renderEdit(); }
+    return;
+  }
+  const idea = e.target.closest("[data-idea]");
+  if (idea) { ed.hook = idea.dataset.idea; return renderEdit(); }
   const bu = e.target.closest("[data-burned]");
   if (bu) { ed.burned = bu.dataset.burned; ed.hook = $("#edHook")?.value ?? ed.hook; return renderEdit(); }
   const ps = e.target.closest("[data-pos]");

@@ -391,13 +391,15 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"update": jobs.UPDATE if jobs.UPDATE.get("latest") else None})
             if path == "/api/open-url":
                 return self._json({"ok": open_url(str(data.get("url", "")))})
-            m = re.match(r"^/api/clip/([^/]+)/(posted|discard|restore|caption|reveal|rerender|tiktok)$", path)
+            m = re.match(r"^/api/clip/([^/]+)/(posted|discard|restore|caption|reveal|rerender|tiktok|hooks)$", path)
             if m:
                 cid, action = m.groups()
                 r = self._clip(cid)
                 if not r:
                     return self._json({"error": "clip inconnu"}, 404)
                 conn = journal.connect()
+                if action == "hooks":
+                    return self._json({"ideas": jobs.hook_ideas(cid, data.get("start"), data.get("end"))})
                 if action == "rerender":
                     return self._json({"started": jobs.rerender(cid, data)})
                 if action == "tiktok":

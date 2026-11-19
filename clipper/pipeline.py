@@ -82,7 +82,9 @@ def prepare(cfg, conn, clip) -> bool:
             from .burned_subs import detect as find_burned
             band, why = find_burned(src)
             log(f"   {why}")
-        caption = write_caption(cfg, clip, transcript)
+        from .hooks import candidates as hook_candidates
+        ideas = hook_candidates(chunks, start, end, src)
+        caption = write_caption(cfg, clip, transcript, hook_hint=ideas[0] if ideas else "")
         hook = caption.split("\n", 1)[0].strip() if p.get("hook_on_screen", True) else ""
         out = day_dir / f"{clip['login']}_{clip['id'][:40]}.mp4"
         cam_position = p.get("facecam_position", "top")

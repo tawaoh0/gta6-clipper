@@ -130,11 +130,20 @@ def _subtitle_png(text: str, y: int, out: Path) -> Path:
 
 def _hook_card(text: str) -> Image.Image:
     """Bandeau d'accroche : dégradé magenta → orange, texte blanc très gras, ombre, léger penché."""
-    font = _font(76, 900)
-    lines = textwrap.wrap(text.strip().upper(), width=17)[:3] or [""]
+    # Le texte doit tenir en entier sur 3 lignes : on réduit la taille si besoin.
+    text = text.strip().upper()
+    for size, width in ((76, 17), (68, 19), (60, 22), (54, 25)):
+        lines = textwrap.wrap(text, width=width)
+        if len(lines) <= 3:
+            break
+    else:
+        lines = textwrap.wrap(text, width=25)[:3]
+        lines[-1] = lines[-1].rstrip(" ,.»") + "… »" if text.endswith("»") else lines[-1] + "…"
+    lines = lines or [""]
+    font = _font(size, 900)
     probe_d = ImageDraw.Draw(_blank())
     widths = [probe_d.textlength(l, font=font) for l in lines]
-    line_h, pad_x, pad_y = 92, 54, 34
+    line_h, pad_x, pad_y = round(size * 1.21), 54, 34
     bw = int(min(max(widths) + 2 * pad_x, W - 90))
     bh = int(len(lines) * line_h + 2 * pad_y)
 
@@ -247,7 +256,7 @@ def render(src: Path, out: Path, streamer: str, chunks, facecam=None, zoom: floa
         # Caméra découpée sur toute la largeur, jeu recadré au centre dans le reste.
         sw, sh = info["width"], info["height"]
         fx, fy, fw, fh = facecam
-        ix, iy = fw * sw * 0.02, fh * sh * 0.02  # on rogne 2 % pour retirer le liseré du cadre
+        ix, iy = fw * sw * 0.01, fh * sh * 0.01  # on rogne 1 % pour retirer le liseré du cadre
         cx, cy = round(fx * sw + ix), round(fy * sh + iy)
         cw, ch = round(fw * sw - 2 * ix) // 2 * 2, round(fh * sh - 2 * iy) // 2 * 2
         cam_h = min(max(round(W * ch / cw), 540), 760) // 2 * 2

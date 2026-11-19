@@ -84,8 +84,47 @@ def _find_border(edges, vertical, start, stop, a, b, thresh=0.75) -> int | None:
     return None
 
 
-def _cam_rect(edges, cx, cy, s) -> tuple[float, float, float, float]:
+def _frame_rect(edges, cx, cy, s, faces) -> tuple[float, float, float, float] | None:
+    """Cherche le cadre de la webcam : un rectangle aux 4 bords bien nets qui entoure le visage.
+
+    On teste les contours fermés de l'image médiane ; on garde le plus grand rectangle plausible
+    (proportions de webcam, pas plus grand que 35 % de l'écran) dont les 4 côtés sont des lignes continues.
+    Il doit contenir les autres visages proches (deux personnes devant la même cam).
+    """
     H, W = edges.shape
+    closed = cv2.dilate(edges, np.ones((3, 3), np.uint8))
+    contours, _ = cv2.findContours(closed, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    best, best_key = None, None
+    for c in contours:
+        x, y, w, h = cv2.boundingRect(c)
+        if not (x < cx < x + w and y < cy < y + h):
+            continue
+        if w < s * 2.0 or h < s * 1.8 or w * h > FULLSCREEN * W * H or not 0.85 <= w / h <= 2.3:
+            continue
+        sides = (_line_strength(edges, True, x, y, y + h), _line_strength(edges, True, x + w - 1, y, y + h),
+                 _line_strength(edges, False, y, x, x + w), _line_strength(edges, False, y + h - 1, x, x + w))
+        # Un côté collé au bord de l'écran n'a pas de trait : on l'accepte.
+        sides = [1.0 if edge else v for v, edge in zip(sides, (x <= 2, x + w >= W - 2, y <= 2, y + h >= H - 2))]
+        if min(sides) < 0.7:
+            continue
+        key = w * h   # le plus grand cadre net : la cam entière, pas un meuble ou une porte à l'intérieur
+        if best_key is None or key > best_key:
+            best, best_key = (x, y, x + w, y + h), key
+    if best is None:
+        return None
+    x0, y0, x1, y1 = best
+    # Les visages voisins (même cam) doivent être dedans ; sinon ce n'est pas le bon cadre.
+    for fx, fy, fs in faces:
+        if abs(fx - cx) < s * 4 and abs(fy - cy) < s * 2 and not (x0 < fx < x1 and y0 < fy < y1):
+            return None
+    return x0 + 2, y0 + 2, x1 - 2, y1 - 2
+
+
+def _cam_rect(edges, cx, cy, s, faces=()) -> tuple[float, float, float, float]:
+    H, W = edges.shape
+    framed = _frame_rect(edges, cx, cy, s, faces)
+    if framed:
+        return framed
     ya, yb = int(max(cy - s * 0.9, 0)), int(min(cy + s * 1.2, H))
     xa, xb = int(max(cx - s * 1.0, 0)), int(min(cx + s * 1.0, W))
     left = _find_border(edges, True, max(cx - s * 0.9, 0), 0, ya, yb)
@@ -94,10 +133,10 @@ def _cam_rect(edges, cx, cy, s) -> tuple[float, float, float, float]:
     bottom = _find_border(edges, False, min(cy + s * 1.1, H - 1), H, xa, xb)
 
     # Pas de bord trouvé : bord de l'image, ou marge raisonnable autour du visage.
-    x0 = left + 2 if left is not None else max(cx - s * 2.2, 0)
-    x1 = right - 1 if right is not None else min(cx + s * 2.2, W)
-    y0 = top + 2 if top is not None else max(cy - s * 1.6, 0)
-    y1 = bottom - 1 if bottom is not None else min(cy + s * 1.9, H)
+    x0 = left + 2 if left is not None else max(cx - s * 2.6, 0)
+    x1 = right - 1 if right is not None else min(cx + s * 2.6, W)
+    y0 = top + 2 if top is not None else max(cy - s * 1.8, 0)
+    y1 = bottom - 1 if bottom is not None else min(cy + s * 2.3, H)
 
     # Une webcam fait entre 0,9:1 et 1,9:1 : si le cadre est bien plus large,
     # un bord vertical a été raté (il se confond avec le jeu). On le cherche là où il devrait être.
@@ -119,8 +158,8 @@ def _cam_rect(edges, cx, cy, s) -> tuple[float, float, float, float]:
             x0 = max(x1 - h * 16 / 9, 0)
 
     if x1 - x0 < s * 1.8 or y1 - y0 < s * 1.6:  # cadre trop serré : marge autour du visage
-        x0, x1 = max(cx - s * 2.2, 0), min(cx + s * 2.2, W)
-        y0, y1 = max(cy - s * 1.6, 0), min(cy + s * 1.9, H)
+        x0, x1 = max(cx - s * 2.6, 0), min(cx + s * 2.6, W)
+        y0, y1 = max(cy - s * 1.8, 0), min(cy + s * 2.3, H)
     return max(x0, 0), max(y0, 0), min(x1, W), min(y1, H)
 
 
@@ -165,8 +204,9 @@ def detect(path: Path, debug_png: Path | None = None) -> tuple[list[float] | Non
     gray = np.stack([cv2.cvtColor(f, cv2.COLOR_BGR2GRAY) for f in frames]).astype(np.float32)
 
     best = None
+    faces = [(g["cx"], g["cy"], g["s"]) for g in groups]
     for g in sorted(groups, key=lambda g: -g["presence"])[:5]:
-        rect = _cam_rect(edges, g["cx"], g["cy"], g["s"])
+        rect = _cam_rect(edges, g["cx"], g["cy"], g["s"], faces)
         g["rect"], g["motion"] = rect, _background_motion(gray, rect, g["cx"], g["cy"], g["s"])
         g["alive"] = _face_motion(gray, g["cx"], g["cy"], g["s"])
         g["score"] = g["presence"] / (1 + g["motion"] / 6)
@@ -183,6 +223,18 @@ def detect(path: Path, debug_png: Path | None = None) -> tuple[list[float] | Non
             if g["presence"] >= 0.8 and g["alive"] >= MIN_FACE_MOTION and off_center:
                 best = g
                 break
+
+    # Deux personnes devant la même cam : on prend le cadre qui contient les deux visages.
+    if best is not None:
+        inside = lambda r, f: r[0] < f["cx"] < r[2] and r[1] < f["cy"] < r[3]
+        for g in groups:
+            r = g.get("rect")
+            if g is best or not r or not inside(r, best):
+                continue
+            area = (r[2] - r[0]) * (r[3] - r[1])
+            barea = (best["rect"][2] - best["rect"][0]) * (best["rect"][3] - best["rect"][1])
+            if area > barea and area <= FULLSCREEN * W * H and sum(inside(r, f) for f in groups) >= 2:
+                best = {**best, "rect": r}
 
     if debug_png:
         dbg = median.copy()
