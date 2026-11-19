@@ -11,7 +11,7 @@ import sys
 import traceback
 from pathlib import Path
 
-from .config import DATA, OUTPUT, load_config
+from .config import DATA, load_config, output_dir
 
 
 def status():
@@ -20,7 +20,7 @@ def status():
     conn = journal.connect()
     for s, n in conn.execute("SELECT status, COUNT(*) FROM clips GROUP BY status"):
         print(f"{s:>9} : {n}")
-    print(f"\nRéglages et journal : {DATA}\nVidéos : {OUTPUT}\n\nDerniers clips :")
+    print(f"\nRéglages et journal : {DATA}\nVidéos : {output_dir(load_config())}\n\nDerniers clips :")
     for r in conn.execute("SELECT * FROM clips ORDER BY seen_at DESC LIMIT 10"):
         extra = f" — {r['error']}" if r["error"] else ""
         print(f"  [{r['status']}] {r['streamer']} : {r['title']} ({r['views']} vues){extra}")
@@ -53,7 +53,7 @@ def main(argv):
         src = Path(argv[2]).resolve()
         streamer = argv[3] if len(argv) > 3 else "streamer"
         _, chunks = transcribe(src, cfg["pipeline"]["whisper_model"], cfg["pipeline"]["language"])
-        out = OUTPUT / f"test_{src.stem}.mp4"
+        out = output_dir(cfg) / f"test_{src.stem}.mp4"
         render(src, out, streamer, chunks, facecam=find_facecam(cfg, streamer, src),
                zoom=cfg["pipeline"]["zoom"], cam_position=cfg["pipeline"]["facecam_position"])
         print(f"✅ {out}")

@@ -30,10 +30,10 @@ def main():
 
     import webview
 
-    from .web import start_server
+    from . import web
 
-    server, url = start_server(port=0)
-    webview.create_window(APP_NAME, url, width=1320, height=880, min_size=(960, 640),
+    server, url = web.start_server(port=0)
+    web.WINDOW = webview.create_window(APP_NAME, url, width=1320, height=880, min_size=(960, 640),
                           background_color="#0a0811", text_select=True)
     try:
         webview.start()

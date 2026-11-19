@@ -17,7 +17,7 @@ from urllib.parse import urlparse
 
 from . import UPDATE_REPO, __version__, jobs
 from . import db as journal
-from .config import DATA, FROZEN, OUTPUT, RES, ROOT, load_config, save_config
+from .config import DATA, FROZEN, OUTPUT, RES, ROOT, load_config, output_dir, save_config
 from .pipeline import is_running
 from .tools import NO_WINDOW, ffmpeg, reveal
 
@@ -116,7 +116,9 @@ def state() -> dict:
         "onboarded": cfg.get("onboarded", False),
         "claude": bool(c.get("api_key") or os.environ.get("ANTHROPIC_API_KEY")),
         "twitch_ok": bool(t["client_id"] and t["client_secret"]),
-        "output_dir": str(OUTPUT),
+        "output_dir": str(output_dir(cfg)),
+        "default_output_dir": str(OUTPUT),
+        "can_pick_folder": WINDOW is not None,
         "version": __version__,
         "update": jobs.UPDATE if jobs.UPDATE.get("latest") else None,
         "jobs": jobs.snapshot(),
@@ -125,6 +127,8 @@ def state() -> dict:
                    "redirect": f"http://localhost:{cfg['tiktok']['redirect_port']}/callback/"},
         "settings": {
             "whitelist": cfg["streamers"]["whitelist"],
+            "paused": cfg["streamers"].get("paused", []),
+            "output_dir": p.get("output_dir", ""),
             "game_name": t.get("game_name", ""),
             "facecam": p.get("facecam", "auto"),
             "facecam_position": p.get("facecam_position", "top"),
@@ -149,6 +153,8 @@ def state() -> dict:
 
 SETTINGS = {  # champ de l'interface -> (section, clé, type)
     "whitelist": ("streamers", "whitelist", list),
+    "paused": ("streamers", "paused", list),
+    "output_dir": ("pipeline", "output_dir", str),
     "game_name": ("twitch", "game_name", str),
     "facecam": ("pipeline", "facecam", str),
     "facecam_position": ("pipeline", "facecam_position", str),
@@ -193,6 +199,13 @@ def save_settings(data: dict):
             # Les clés secrètes ne sont jamais renvoyées à l'interface : champ vide = on garde l'ancienne.
             if field in SECRETS and not value:
                 continue
+            if field == "output_dir" and value:
+                folder = Path(value).expanduser()
+                try:
+                    folder.mkdir(parents=True, exist_ok=True)
+                except OSError:
+                    raise ValueError(f"Impossible d'utiliser ce dossier : {value}")
+                value = str(folder)
         cfg[section][key] = value
     save_config(cfg)
 
@@ -264,6 +277,20 @@ def frame(clip_id: str, source: Path, t: float) -> Path | None:
         subprocess.run([ffmpeg(), "-y", "-loglevel", "error", "-ss", f"{t:.2f}", "-i", str(source),
                         "-frames:v", "1", "-vf", "scale=960:-2", "-q:v", "3", str(out)], **NO_WINDOW)
     return out if out.exists() else None
+
+
+WINDOW = None   # fenêtre de l'app (pywebview), donnée par app.py ; None dans le navigateur
+
+
+def pick_folder() -> str | None:
+    """Fenêtre système « Choisir un dossier » (seulement dans l'app)."""
+    if WINDOW is None:
+        return None
+    import webview
+
+    kind = getattr(getattr(webview, "FileDialog", None), "FOLDER", None) or webview.FOLDER_DIALOG
+    res = WINDOW.create_file_dialog(kind, directory=str(output_dir(load_config())))
+    return res[0] if res else None
 
 
 def open_url(url: str) -> bool:
@@ -377,9 +404,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(test_twitch(str(data.get("client_id", "")),
                                               str(data.get("client_secret", ""))))
             if path == "/api/open-folder":
-                OUTPUT.mkdir(parents=True, exist_ok=True)
-                reveal(OUTPUT)
+                reveal(output_dir(load_config()))
                 return self._json({"ok": True})
+            if path == "/api/pick-folder":
+                return self._json({"path": pick_folder()})
             if path == "/api/tiktok/login":
                 return self._json({"started": jobs.tiktok_login()})
             if path == "/api/tiktok/logout":

@@ -364,6 +364,27 @@ label.f small { display: block; color: var(--dim); font-size: 12px; margin-top: 
 .keystate { display: inline-flex; align-items: center; gap: 6px; font: 600 11px var(--mono); letter-spacing: .5px; text-transform: uppercase; color: var(--muted); }
 .link { color: var(--twitch); text-decoration: none; font-weight: 700; cursor: pointer; }
 .link:hover { text-decoration: underline; }
+.settings-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 20px; align-items: start; }
+.snav { position: sticky; top: 0; display: grid; gap: 4px; padding: 8px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line-soft); }
+.snav button { display: flex; align-items: center; gap: 10px; border: 0; background: none; padding: 10px 12px; border-radius: 10px; color: var(--muted); font-weight: 700; font-size: 14px; text-align: left; }
+.snav button svg { width: 17px; height: 17px; flex: none; }
+.snav button span { flex: 1; }
+.snav button em { font: 600 11px var(--mono); font-style: normal; color: var(--dim); }
+.snav button:hover { color: var(--text); background: rgba(255, 255, 255, .03); }
+.snav button[aria-current="true"] { color: var(--text); background: var(--panel-solid); box-shadow: inset 0 0 0 1px var(--line); }
+.snav button[aria-current="true"] svg { color: var(--sun-1); }
+.spane { min-width: 0; }
+.spane .box { animation: rise .35s cubic-bezier(.2, .8, .2, 1) both; }
+.calm .spane .box { animation: none; }
+.scount { font: 600 11px var(--mono); letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.slist { display: grid; gap: 8px; margin-bottom: 16px; }
+.srow { display: flex; align-items: center; gap: 14px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line-soft); background: rgba(8, 6, 14, .5); transition: opacity .2s; }
+.srow .who { flex: 1; min-width: 0; }
+.srow .who b { display: block; font: 600 14.5px var(--mono); }
+.srow .who span { font-size: 12.5px; color: var(--muted); }
+.srow.off { opacity: .55; }
+.srow.off .who b { text-decoration: line-through; text-decoration-color: var(--dim); }
+.srow .btn { padding: 7px 9px; }
 .save-bar {
   position: sticky; bottom: 16px; margin-top: 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px;
   padding: 12px 14px 12px 18px; border-radius: 14px; background: var(--panel-solid); border: 1px solid var(--line); box-shadow: 0 20px 50px -25px #000;
@@ -401,7 +422,8 @@ label.f small { display: block; color: var(--dim); font-size: 12px; margin-top: 
 @media (max-width: 860px) {
   .brand h1 { font-size: 46px; }
   .stats { grid-template-columns: repeat(2, 1fr); }
-  .settings, .settings-grid { grid-template-columns: 1fr; }
+  .settings, .settings-grid, .settings-layout { grid-template-columns: 1fr; }
+  .snav { position: static; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .studio { grid-template-columns: 1fr; max-height: 92vh; overflow: auto; }
   .studio video { max-height: 60vh; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
@@ -573,7 +595,7 @@ function renderHeader() {
   $("#stats").innerHTML = [
     [todo, "à poster"], [postedToday, "publiés aujourd'hui"],
     [S.clips.filter(c => c.status === "posted").length, "publiés au total"],
-    [S.settings.whitelist.length, "streamers suivis"],
+    [S.settings.whitelist.filter(w => !(S.settings.paused || []).includes(w)).length, "streamers suivis"],
   ].map(([n, l]) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`).join("");
   $("#c-todo").textContent = todo || "";
   $("#c-posted").textContent = S.clips.filter(c => c.status === "posted").length || "";
@@ -598,7 +620,7 @@ function renderStatus() {
   }
   if (!S.twitch_ok)
     return set("warn", ICON.warn, "Ajoute tes clés Twitch pour commencer", "Réglages → Connexions. Sans elles, l'app ne peut pas voir les clips.");
-  if (!s.whitelist.length)
+  if (!s.whitelist.filter(w => !(s.paused || []).includes(w)).length)
     return set("warn", ICON.warn, "Aucun streamer suivi", "Ajoute au moins un streamer qui t'a donné son accord, dans Réglages.");
   const L = S.last_run;
   if (!L) return set("", ICON.clock, "Aucun passage pour l'instant", next);
@@ -651,35 +673,75 @@ function renderList(filter, emptyMsg) {
 }
 
 // ---------- réglages ----------
+const SECTIONS = [
+  ["streamers", "Streamers", '<path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1"/><circle cx="9" cy="7" r="3.5"/><path d="M22 19v-1a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>'],
+  ["clips", "Choix des clips", '<path d="M3 5h18M6 12h12M10 19h4"/>'],
+  ["montage", "Montage", '<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M6 9h12"/>'],
+  ["videos", "Dossier des vidéos", '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'],
+  ["connexions", "Connexions", '<path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/>'],
+  ["tiktok", "TikTok", '<path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3c.5 2.6 2.4 4.4 5 4.6"/>'],
+  ["app", "Application", '<circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2.5"/>'],
+];
+let settingsSection = "streamers";
+
 function renderSettings() {
   const d = settingsDraft || (settingsDraft = structuredClone(S.settings));
-  const camMode = d.facecam === "off" ? "off" : d.facecam_position;
-  const seg = (val, label, mini) => `<button data-cam="${val}" aria-pressed="${camMode === val}">${mini}${label}</button>`;
-  const num = (k, label, help, min, max) => `<label class="f"><span>${label}</span><input type="number" min="${min}" ${max ? `max="${max}"` : ""} data-k="${k}" value="${d[k]}"><small>${help}</small></label>`;
-  return `<div class="settings-grid">
-    <div class="box">
+  d.paused = d.paused || [];
+  const sec = settingsSection;
+  const nav = SECTIONS.map(([id, label, icon]) => {
+    const extra = id === "streamers" ? `<em>${d.whitelist.length - d.whitelist.filter(w => d.paused.includes(w)).length}/${d.whitelist.length}</em>` : "";
+    return `<button data-sec="${id}" aria-current="${sec === id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${icon}</svg><span>${label}</span>${extra}</button>`;
+  }).join("");
+  return `<div class="settings-layout">
+    <nav class="snav" aria-label="Sections des réglages">${nav}</nav>
+    <div class="spane">${SECTION_HTML[sec](d)}
+      <div class="save-bar"><span>Les changements s'appliquent au prochain passage.</span><button class="btn sun" id="saveSettings">Enregistrer</button></div>
+    </div>
+  </div>`;
+}
+
+const num = (d, k, label, help, min, max) => `<label class="f"><span>${label}</span><input type="number" min="${min}" ${max ? `max="${max}"` : ""} data-k="${k}" value="${d[k]}"><small>${help}</small></label>`;
+const check = (d, k, title, help) => `<label class="consent-line"><input type="checkbox" data-b="${k}" ${d[k] ? "checked" : ""}><span><b>${title}</b><br><small>${help}</small></span></label>`;
+
+const SECTION_HTML = {
+  streamers: d => {
+    const active = d.whitelist.filter(w => !d.paused.includes(w)).length;
+    const rows = d.whitelist.map(w => {
+      const on = !d.paused.includes(w);
+      return `<div class="srow ${on ? "" : "off"}">
+        <button class="toggle" data-pause="${esc(w)}" aria-pressed="${on}" aria-label="${on ? "Mettre en pause" : "Réactiver"} ${esc(w)}"></button>
+        <div class="who"><b>${esc(w)}</b><span>${on ? "Suivi : ses clips sont pris à chaque passage" : "En pause : ignoré pour l'instant"}</span></div>
+        <a class="link" data-ext="https://www.twitch.tv/${encodeURIComponent(w)}">Chaîne ↗</a>
+        <button class="btn ghost danger" data-rm="${esc(w)}" title="Retirer de la liste">${ICON.trash}</button>
+      </div>`;
+    }).join("");
+    return `<div class="box">
       <h3>Streamers suivis</h3>
-      <p class="hint">Seuls ces streamers sont clippés. Mets uniquement ceux qui t'ont donné leur accord.</p>
-      <div class="chips">${d.whitelist.map(w => `<span class="chip">${esc(w)}<button data-rm="${esc(w)}" aria-label="Retirer ${esc(w)}">×</button></span>`).join("") || '<span class="hint">Aucun streamer pour l\'instant.</span>'}</div>
+      <p class="hint">Seuls les streamers cochés sont clippés. Mets uniquement ceux qui t'ont donné leur accord. Décoche pour mettre un streamer en pause sans le retirer.</p>
+      <div class="scount">${active} actif${active > 1 ? "s" : ""} sur ${d.whitelist.length}</div>
+      <div class="slist">${rows || '<p class="hint">Aucun streamer pour l\'instant.</p>'}</div>
       <form class="add" id="addForm">
         <input type="text" id="addInput" placeholder="login ou lien Twitch (ex. twitch.tv/waolol1)" autocomplete="off">
         <button class="btn" type="submit">Ajouter</button>
       </form>
-    </div>
-
-    <div class="box">
-      <h3>Quels clips prendre</h3>
+    </div>`;
+  },
+  clips: d => `<div class="box">
+      <h3>Choix des clips</h3>
       <p class="hint">Les règles pour choisir les clips à chaque passage.</p>
       <div class="fields">
         <label class="f wide" style="grid-column:1/-1"><span>Jeu</span><input type="text" data-s="game_name" value="${esc(d.game_name)}" placeholder="Tous les jeux"><small>Nom exact de la catégorie Twitch (ex. Grand Theft Auto VI). Vide = tous les jeux.</small></label>
-        ${num("min_views", "Vues minimum", "Un clip en dessous est ignoré.", 0)}
-        ${num("lookback_hours", "Clips des dernières (h)", "Plus c'est long, plus il y a de clips.", 1, 72)}
-        ${num("max_duration", "Durée max (s)", "TikTok garde mieux les clips courts.", 10, 60)}
-        ${num("clips_per_run", "Vidéos par passage", "Les meilleurs clips d'abord.", 1, 10)}
+        ${num(d, "min_views", "Vues minimum", "Un clip en dessous est ignoré.", 0)}
+        ${num(d, "lookback_hours", "Clips des dernières (h)", "Plus c'est long, plus il y a de clips.", 1, 72)}
+        ${num(d, "max_duration", "Durée max (s)", "TikTok garde mieux les clips courts.", 10, 60)}
+        ${num(d, "clips_per_run", "Vidéos par passage", "Les meilleurs clips d'abord.", 1, 10)}
       </div>
-    </div>
-
-    <div class="box">
+      <div style="margin-top:18px">${check(d, "smart_cut", "Recadrer sur le meilleur moment", "L'app récupère quelques secondes avant et après le clip dans la VOD (si elle est publique), puis cale le début et la fin sur le moment fort. Tu peux toujours changer dans « Ajuster la vidéo ».")}</div>
+    </div>`,
+  montage: d => {
+    const camMode = d.facecam === "off" ? "off" : d.facecam_position;
+    const seg = (val, label, mini) => `<button data-cam="${val}" aria-pressed="${camMode === val}">${mini}${label}</button>`;
+    return `<div class="box">
       <h3>Montage</h3>
       <p class="hint">La facecam est détectée et découpée automatiquement. Si le streamer est en plein écran, la vidéo garde tout l'écran sur un fond flouté.</p>
       <div class="seg">
@@ -687,19 +749,27 @@ function renderSettings() {
         ${seg("bottom", "Cam en dessous", '<span class="mini"><i class="g"></i><i class="c"></i></span>')}
         ${seg("off", "Sans cam", '<span class="mini"><i class="b"></i></span>')}
       </div>
-      <label class="consent-line"><input type="checkbox" data-b="smart_cut" ${d.smart_cut ? "checked" : ""}>
-        <span><b>Recadrer sur le meilleur moment</b><br><small>L'app récupère quelques secondes avant et après le clip dans la VOD (si elle est publique), puis cale le début et la fin sur le moment fort. Tu peux toujours changer dans « Ajuster la vidéo ».</small></span></label>
-      <label class="consent-line"><input type="checkbox" data-b="remove_burned_subs" ${d.remove_burned_subs ? "checked" : ""}>
-        <span><b>Retirer les sous-titres du stream</b><br><small>Si le streamer a déjà ses sous-titres à l'image, on coupe cette bande pour éviter d'en avoir deux.</small></span></label>
-      <label class="consent-line"><input type="checkbox" data-b="hook_on_screen" ${d.hook_on_screen ? "checked" : ""}>
-        <span><b>Accroche à l'écran</b><br><small>La première ligne de la légende s'affiche en gros pendant 2,5 s. Modifiable clip par clip dans « Ajuster la vidéo ».</small></span></label>
-      <div class="folder-line">
-        <div><label class="f"><span>Les vidéos sont rangées dans</span></label><code>${esc(S.output_dir)}</code></div>
-        <button class="btn" data-open-folder>Ouvrir dans ${FINDER}</button>
+      ${check(d, "remove_burned_subs", "Retirer les sous-titres du stream", "Si le streamer a déjà ses sous-titres à l'image, on coupe cette bande pour éviter d'en avoir deux.")}
+      ${check(d, "hook_on_screen", "Accroche à l'écran", "Une phrase dite dans le clip s'affiche en gros pendant 2,5 s. Modifiable clip par clip dans « Ajuster la vidéo ».")}
+    </div>`;
+  },
+  videos: d => {
+    const chosen = d.output_dir || S.default_output_dir;
+    return `<div class="box">
+      <h3>Dossier des vidéos</h3>
+      <p class="hint">Où ranger les vidéos montées. Un sous-dossier par jour y est créé. Les vidéos déjà faites restent où elles sont.</p>
+      <label class="f"><span>Dossier choisi ${d.output_dir ? "" : "<em class=\"keystate\">· par défaut</em>"}</span></label>
+      ${S.can_pick_folder
+        ? `<div class="folder-line"><code>${esc(chosen)}</code><button class="btn sun" data-pick-folder type="button">Choisir un dossier…</button></div>`
+        : `<div class="inline"><input type="text" data-s="output_dir" value="${esc(d.output_dir)}" placeholder="${esc(S.default_output_dir)}" spellcheck="false"></div>
+           <small class="hint" style="display:block;margin-top:6px">Colle le chemin complet du dossier. Dans l'application, un bouton ouvre le sélecteur de dossiers.</small>`}
+      <div class="folder-line" style="margin-top:16px">
+        ${d.output_dir ? `<button class="btn ghost" data-folder-default type="button">Revenir au dossier par défaut</button>` : "<span></span>"}
+        <button class="btn" data-open-folder type="button">Ouvrir dans ${FINDER}</button>
       </div>
-    </div>
-
-    <div class="box">
+    </div>`;
+  },
+  connexions: d => `<div class="box">
       <h3>Connexions</h3>
       <p class="hint">Tes clés restent sur cet ordinateur et ne sont jamais réaffichées.</p>
       <div class="stack" style="display:grid;gap:14px">
@@ -710,10 +780,10 @@ function renderSettings() {
           <small><span class="msg" id="twMsg"></span> Les clés se créent sur <a class="link" data-ext="https://dev.twitch.tv/console/apps">dev.twitch.tv</a> (gratuit).</small></label>
         <label class="f"><span>Claude : clé API (optionnelle) <em class="keystate">${d.claude_key_set ? "· enregistrée" : S.claude ? "· via le système" : "· aucune"}</em></span>
           <input type="password" data-s="claude_api_key" placeholder="${d.claude_key_set ? "Laisser vide pour garder l'actuelle" : "sk-ant-…"}" autocomplete="off">
-          <small>Sert à écrire des accroches. Sans clé, la légende reprend le titre du clip. Clé sur <a class="link" data-ext="https://console.anthropic.com/settings/keys">console.anthropic.com</a>.</small></label>
+          <small>Sert à réécrire les accroches et hashtags à partir de ce qui est dit. Sans clé, l'accroche est une phrase du clip. Clé sur <a class="link" data-ext="https://console.anthropic.com/settings/keys">console.anthropic.com</a>.</small></label>
       </div>
-    </div>
-    <div class="box">
+    </div>`,
+  tiktok: d => `<div class="box">
       <h3>TikTok : envoi en brouillon</h3>
       <p class="hint">Optionnel. Une fois connecté, le bouton « Envoyer en brouillon » met la vidéo dans ta boîte de réception TikTok. Tu ajoutes la légende et tu publies depuis l'app TikTok.</p>
       <div class="stack" style="display:grid;gap:14px">
@@ -724,17 +794,14 @@ function renderSettings() {
         <label class="f"><span>Secret client <em class="keystate">${d.tiktok_secret_set ? "· enregistré" : "· manquant"}</em></span><input type="password" data-s="tiktok_client_secret" placeholder="${d.tiktok_secret_set ? "Laisser vide pour garder l'actuel" : "Colle le secret ici"}" autocomplete="off">
           <small>Crée une app sur <a class="link" data-ext="https://developers.tiktok.com/apps">developers.tiktok.com</a> avec Login Kit (Desktop) et Content Posting API, scopes <b>user.info.basic</b> et <b>video.upload</b>, URL de redirection <b>${esc(S.tiktok?.redirect || "")}</b>. Enregistre les clés ici, puis « Connecter mon compte ».</small></label>
       </div>
-    </div>
-
-    <div class="box">
+    </div>`,
+  app: d => `<div class="box">
       <h3>Application</h3>
       <p class="hint">Version ${esc(S.version)}. L'app vérifie toute seule les nouvelles versions au démarrage, puis toutes les 6 heures.</p>
       <div class="folder-line"><span class="msg" id="updMsg">${S.update ? `Nouvelle version ${esc(S.update.latest)} disponible.` : ""}</span>
         ${S.update ? `<button class="btn sun" data-update type="button">Télécharger la version ${esc(S.update.latest)}</button>` : `<button class="btn" data-check-update type="button">Vérifier maintenant</button>`}</div>
-    </div>
-  </div>
-  <div class="save-bar"><span>Les changements s'appliquent au prochain passage.</span><button class="btn sun" id="saveSettings">Enregistrer</button></div>`;
-}
+    </div>`,
+};
 
 function collectDraft() {
   document.querySelectorAll("#view [data-k]").forEach(i => settingsDraft[i.dataset.k] = +i.value);
@@ -1175,7 +1242,7 @@ $("#view").addEventListener("click", async e => {
   const cardEl = e.target.closest(".card");
   if (cardEl) return openStudio(cardEl.dataset.id);
   const rm = e.target.closest("[data-rm]");
-  if (rm) { collectDraft(); settingsDraft.whitelist = settingsDraft.whitelist.filter(w => w !== rm.dataset.rm); return rerender(); }
+  if (rm) { collectDraft(); settingsDraft.whitelist = settingsDraft.whitelist.filter(w => w !== rm.dataset.rm); settingsDraft.paused = (settingsDraft.paused || []).filter(w => w !== rm.dataset.rm); return rerender(); }
   const cam = e.target.closest("[data-cam]");
   if (cam) {
     collectDraft();
@@ -1184,6 +1251,22 @@ $("#view").addEventListener("click", async e => {
     if (v !== "off") settingsDraft.facecam_position = v;
     return rerender();
   }
+  const secBtn = e.target.closest("[data-sec]");
+  if (secBtn) { collectDraft(); settingsSection = secBtn.dataset.sec; rerender(); $("#view").scrollTop = 0; return; }
+  const pz = e.target.closest("[data-pause]");
+  if (pz) {
+    collectDraft();
+    const w = pz.dataset.pause, p = settingsDraft.paused || (settingsDraft.paused = []);
+    settingsDraft.paused = p.includes(w) ? p.filter(x => x !== w) : [...p, w];
+    return rerender();
+  }
+  if (e.target.closest("[data-pick-folder]")) {
+    collectDraft();
+    const r = await api("/api/pick-folder", {});
+    if (r.path) { settingsDraft.output_dir = r.path; rerender(); toast("Dossier choisi : pense à Enregistrer"); }
+    return;
+  }
+  if (e.target.closest("[data-folder-default]")) { collectDraft(); settingsDraft.output_dir = ""; return rerender(); }
   const tk = e.target.closest("[data-tk]");
   if (tk) {
     collectDraft();

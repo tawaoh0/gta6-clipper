@@ -72,7 +72,12 @@ def find_candidates(cfg: dict, already_seen: set[str]) -> list[dict]:
     tw = Twitch(t["client_id"], t["client_secret"])
     # game_name vide = tous les jeux
     game = tw.game_id(t["game_name"]) if t.get("game_name", "").strip() else None
-    users = tw.user_ids(cfg["streamers"]["whitelist"])
+    from .config import active_streamers
+
+    names = active_streamers(cfg)
+    if not names:
+        return []
+    users = tw.user_ids(names)
     now = datetime.now(timezone.utc)
 
     found = []

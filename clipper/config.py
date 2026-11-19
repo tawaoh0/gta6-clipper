@@ -34,7 +34,7 @@ DEFAULTS = {
         "min_duration": 8,
         "max_duration": 60,
     },
-    "streamers": {"whitelist": [], "facecam": {}},
+    "streamers": {"whitelist": [], "paused": [], "facecam": {}},   # paused : suivis mais mis en pause
     "pipeline": {
         "clips_per_run": 3,
         "drafts_per_day": 5,
@@ -46,6 +46,7 @@ DEFAULTS = {
         "facecam": "auto",
         "facecam_position": "top",
         "auto_minutes": 0,          # 0 = pas de passage automatique
+        "output_dir": "",           # vide = dossier Vidéos / Grand Clip Auto
         "hook_on_screen": True,     # accroche en gros pendant les premières secondes
         "hook_seconds": 2.5,
         "remove_burned_subs": True,
@@ -100,6 +101,23 @@ def ensure_dirs():
     _migrate_old_name()
     for d in (DATA, OUTPUT, WORK, SOURCES):
         d.mkdir(parents=True, exist_ok=True)
+
+
+def output_dir(cfg: dict) -> Path:
+    """Dossier où ranger les vidéos montées (réglage de l'utilisateur, sinon Vidéos / Grand Clip Auto)."""
+    custom = (cfg.get("pipeline", {}).get("output_dir") or "").strip()
+    path = Path(custom).expanduser() if custom else OUTPUT
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+    except OSError:
+        OUTPUT.mkdir(parents=True, exist_ok=True)
+        return OUTPUT  # dossier choisi introuvable (disque débranché…) : on revient au dossier par défaut
+
+
+def active_streamers(cfg: dict) -> list[str]:
+    paused = {p.lower() for p in cfg["streamers"].get("paused", [])}
+    return [w for w in cfg["streamers"]["whitelist"] if w.lower() not in paused]
 
 
 def load_config() -> dict:

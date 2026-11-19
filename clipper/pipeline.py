@@ -8,7 +8,7 @@ from pathlib import Path
 from filelock import FileLock, Timeout
 
 from . import db as journal
-from .config import DATA, OUTPUT, SOURCES, WORK, load_config, save_config
+from .config import DATA, SOURCES, WORK, load_config, output_dir, save_config
 from .tools import notify
 
 LOCK = DATA / "run.lock"
@@ -46,7 +46,7 @@ def prepare(cfg, conn, clip) -> bool:
     from .moment import best_range, download_window, window as window_of
 
     p = cfg["pipeline"]
-    day_dir = OUTPUT / datetime.now().strftime("%Y-%m-%d")
+    day_dir = output_dir(cfg) / datetime.now().strftime("%Y-%m-%d")
     day_dir.mkdir(parents=True, exist_ok=True)
     work = WORK / clip["id"]
     work.mkdir(parents=True, exist_ok=True)
