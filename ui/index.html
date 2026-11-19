@@ -1295,7 +1295,13 @@ $("#view").addEventListener("click", async e => {
   }
   if (e.target.id === "saveSettings") {
     collectDraft();
-    try { await api("/api/settings", settingsDraft); toast("Réglages enregistrés"); settingsDraft = null; rerender(); refresh(); }
+    try {
+      await api("/api/settings", settingsDraft);
+      // On relit les réglages enregistrés AVANT de redessiner : sinon l'écran repart de l'ancienne liste.
+      S = await api("/api/state");
+      settingsDraft = null; rerender(); renderHeader();
+      toast("Réglages enregistrés");
+    }
     catch (err) { toast("Erreur : " + err.message); }
   }
 });
