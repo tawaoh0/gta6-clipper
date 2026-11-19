@@ -8,7 +8,7 @@ from pathlib import Path
 from filelock import FileLock, Timeout
 
 from . import db as journal
-from .config import DATA, SOURCES, WORK, load_config, output_dir, save_config
+from .config import DATA, SOURCES, WORK, load_config, output_dir, save_config, whisper_model
 from .tools import notify
 
 LOCK = DATA / "run.lock"
@@ -68,14 +68,14 @@ def prepare(cfg, conn, clip) -> bool:
             src = download(clip["url"], work)
         transcript, chunks = "", []
         if p["subtitles"]:
-            log("   sous-titres… (le premier passage télécharge le modèle, ~500 Mo, une seule fois)")
-            transcript, chunks = transcribe(src, p["whisper_model"], p["language"])
+            log("   sous-titres… (le premier passage télécharge le modèle, 0,5 à 1,6 Go, une seule fois)")
+            transcript, chunks = transcribe(src, whisper_model(cfg), p["language"])
         start, end, cut_reason = clip_start, clip_end, "découpe du spectateur"
         if win:
             start, end, cut_reason = best_range(src, chunks, clip_start, clip_end,
                                                 float(cfg["twitch"]["max_duration"]))
             log(f"   découpe : {cut_reason} ({start:.1f} → {end:.1f} s)")
-            transcript = " ".join(t for a, b, t in chunks if b > start and a < end) or transcript
+            transcript = " ".join(c[2] for c in chunks if c[1] > start and c[0] < end) or transcript
         facecam = find_facecam(cfg, clip["login"], src)
         band = None
         if p.get("remove_burned_subs", True) and chunks:
@@ -84,13 +84,17 @@ def prepare(cfg, conn, clip) -> bool:
             log(f"   {why}")
         from .hooks import candidates as hook_candidates
         ideas = hook_candidates(chunks, start, end, src)
+        zoom_at = None
+        if p.get("reaction_zoom", True):
+            from .hooks import _peak
+            zoom_at = _peak(src, start, end)
         caption = write_caption(cfg, clip, transcript, hook_hint=ideas[0] if ideas else "")
         hook = caption.split("\n", 1)[0].strip() if p.get("hook_on_screen", True) else ""
         out = day_dir / f"{clip['login']}_{clip['id'][:40]}.mp4"
         cam_position = p.get("facecam_position", "top")
         render(src, out, clip["broadcaster_name"], chunks, facecam=facecam, zoom=p["zoom"],
                cam_position=cam_position, hook=hook, hook_seconds=p.get("hook_seconds", 2.5),
-               burned_band=band, start=start, end=end)
+               burned_band=band, start=start, end=end, sub_style=p.get("sub_style"), zoom_at=zoom_at)
         out.with_suffix(".txt").write_text(caption, encoding="utf-8")
         # On garde la vidéo d'origine quelques jours pour pouvoir ajuster et remonter le clip.
         kept = SOURCES / f"{clip['id']}{src.suffix}"
@@ -100,7 +104,7 @@ def prepare(cfg, conn, clip) -> bool:
                        source_path=str(kept), chunks=json.dumps(chunks), cam_position=cam_position,
                        facecam=json.dumps(facecam) if facecam else None, hook=hook,
                        burned_band=json.dumps(band) if band else None, trim_start=start, trim_end=end,
-                       clip_start=clip_start, clip_end=clip_end, cut_reason=cut_reason, duration=float(clip.get("duration") or 0))
+                       clip_start=clip_start, clip_end=clip_end, cut_reason=cut_reason, zoom_at=zoom_at, duration=float(clip.get("duration") or 0))
         log(f"🎬 monté : {out.name}")
         return True
     except Exception as e:
@@ -167,6 +171,11 @@ def run():
         conn.execute("UPDATE clips SET status = 'expired' WHERE status = 'ready' AND ready_at < ?", (limit,))
         conn.commit()
         prune_sources(cfg, conn)
+        if cfg["pipeline"].get("clean_after_days"):
+            from .storage import clean
+            cleaned = clean(cfg["pipeline"]["clean_after_days"])
+            if cleaned["clips"]:
+                log(f"🧹 {cleaned['clips']} ancienne(s) vidéo(s) supprimée(s), {cleaned['freed'] / 1e9:.1f} Go libérés")
 
         log("🔎 recherche des clips…")
         candidates = find_candidates(cfg, journal.known_ids(conn))

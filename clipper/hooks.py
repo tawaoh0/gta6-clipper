@@ -20,22 +20,30 @@ PUNCHY = {
 FILLER = re.compile(r"^(euh|bah|ben|donc|et|mais|alors|ouais|bon)\b[\s,]*", re.I)
 
 
-def sentences(chunks) -> list[tuple[float, float, str]]:
-    """Regroupe les morceaux de sous-titres en phrases (coupure sur la ponctuation ou un silence)."""
-    out, cur, t0, t1 = [], [], None, None
-    for a, b, text in chunks:
+def sentences(words) -> list[tuple[float, float, str, float]]:
+    """Regroupe les mots en phrases (coupure sur la ponctuation ou un silence).
+    Renvoie (début, fin, texte, confiance moyenne de la transcription)."""
+    out, cur, probs, t0, t1 = [], [], [], None, None
+
+    def flush():
+        out.append((t0, t1, " ".join(cur), sum(probs) / len(probs)))
+
+    for w in words:
+        a, b, text = w[0], w[1], w[2]
+        prob = w[3] if len(w) > 3 else 0.9
         if cur and (a - t1 > 0.7):
-            out.append((t0, t1, " ".join(cur)))
-            cur = []
+            flush()
+            cur, probs = [], []
         if not cur:
             t0 = a
         cur.append(text)
+        probs.append(prob)
         t1 = b
         if re.search(r"[.!?…]$", text):
-            out.append((t0, t1, " ".join(cur)))
-            cur = []
+            flush()
+            cur, probs = [], []
     if cur:
-        out.append((t0, t1, " ".join(cur)))
+        flush()
     return out
 
 
@@ -72,7 +80,9 @@ def candidates(chunks, start: float, end: float, source: Path | None = None, lim
     peak = _peak(source, start, end)
     length = max(end - start, 1.0)
     scored = []
-    for a, b, raw in sents:
+    for a, b, raw, prob in sents:
+        if prob < 0.55:   # transcription peu sûre : la phrase risque d'être fausse
+            continue
         text = _clean(raw)
         words = text.split()
         if not 2 <= len(words) <= 12 or len(text) > 70:
@@ -87,6 +97,7 @@ def candidates(chunks, start: float, end: float, source: Path | None = None, lim
             # Dite pendant la montée du son, ou dans les 4 s qui précèdent : c'est la réaction.
             dist = 0 if a - 4 <= peak <= b + 1 else min(abs(peak - a), abs(peak - b))
             score += 2.5 * max(0.0, 1 - dist / (length / 2))
+        score += 1.5 * (prob - 0.7)
         score -= 0.4 * max(0, len(words) - 9) + 0.05 * max(0, len(text) - 45)
         scored.append((score, text))
     seen, out = set(), []

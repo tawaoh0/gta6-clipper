@@ -49,9 +49,13 @@ DEFAULTS = {
         "output_dir": "",           # vide = dossier Vidéos / Grand Clip Auto
         "hook_on_screen": True,     # accroche en gros pendant les premières secondes
         "hook_seconds": 2.5,
+        "sub_quality": "precise",   # precise = modèle turbo (plus juste) ; fast = modèle small (plus rapide)
+        "sub_style": {"color": "#FFE600", "size": "M", "position": "auto", "mode": "karaoke", "words": 3},
+        "reaction_zoom": True,      # léger zoom avant au moment fort
         "remove_burned_subs": True,
         "smart_cut": True,          # recadrer sur le meilleur moment grâce à la VOD  # retirer les sous-titres déjà incrustés par le stream
-        "keep_sources_days": 7,     # garder la vidéo d'origine pour pouvoir remonter le clip
+        "keep_sources_days": 7,
+        "clean_after_days": 30,     # supprimer les vidéos publiées / écartées après N jours (0 = jamais)     # garder la vidéo d'origine pour pouvoir remonter le clip
     },
     "tiktok": {"enabled": False, "client_key": "", "client_secret": "", "redirect_port": 3455},
     "claude": {"enabled": True, "model": "claude-opus-5-5", "api_key": ""},
@@ -101,6 +105,13 @@ def ensure_dirs():
     _migrate_old_name()
     for d in (DATA, OUTPUT, WORK, SOURCES):
         d.mkdir(parents=True, exist_ok=True)
+
+
+WHISPER_MODELS = {"precise": "large-v3-turbo", "fast": "small"}
+
+
+def whisper_model(cfg: dict) -> str:
+    return WHISPER_MODELS.get(cfg["pipeline"].get("sub_quality", "precise"), "large-v3-turbo")
 
 
 def output_dir(cfg: dict) -> Path:

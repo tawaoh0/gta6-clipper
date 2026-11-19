@@ -19,6 +19,7 @@ from . import UPDATE_REPO, __version__, jobs
 from . import db as journal
 from .config import DATA, FROZEN, OUTPUT, RES, ROOT, load_config, output_dir, save_config
 from .pipeline import is_running
+from .media import SUB_STYLE
 from .tools import NO_WINDOW, ffmpeg, reveal
 
 UI = RES / "ui" / "index.html"
@@ -29,7 +30,8 @@ CLIP_ID = re.compile(r"^[A-Za-z0-9_-]{1,120}$")
 NOISE = ("objc[", "Class AVF", "MPS backend", "One of the duplicates")
 EXTERNAL = ("https://dev.twitch.tv/", "https://www.twitch.tv/", "https://twitch.tv/",
             "https://clips.twitch.tv/", "https://console.anthropic.com/", "https://www.tiktok.com/",
-            "https://developers.tiktok.com/", "https://github.com/")
+            "https://developers.tiktok.com/", "https://github.com/", "https://studio.youtube.com/",
+            "https://www.instagram.com/")
 
 
 # ---------- état ----------
@@ -142,6 +144,10 @@ def state() -> dict:
             "hook_on_screen": p.get("hook_on_screen", True),
             "remove_burned_subs": p.get("remove_burned_subs", True),
             "smart_cut": p.get("smart_cut", True),
+            "clean_after_days": p.get("clean_after_days", 30),
+            "sub_quality": p.get("sub_quality", "precise"),
+            "sub_style": {**SUB_STYLE, **(p.get("sub_style") or {})},
+            "reaction_zoom": p.get("reaction_zoom", True),
             "tiktok_client_key": cfg["tiktok"]["client_key"],
             "tiktok_secret_set": bool(cfg["tiktok"]["client_secret"]),
         },
@@ -168,6 +174,10 @@ SETTINGS = {  # champ de l'interface -> (section, clé, type)
     "hook_on_screen": ("pipeline", "hook_on_screen", bool),
     "remove_burned_subs": ("pipeline", "remove_burned_subs", bool),
     "smart_cut": ("pipeline", "smart_cut", bool),
+    "clean_after_days": ("pipeline", "clean_after_days", int),
+    "sub_quality": ("pipeline", "sub_quality", str),
+    "sub_style": ("pipeline", "sub_style", dict),
+    "reaction_zoom": ("pipeline", "reaction_zoom", bool),
     "tiktok_client_key": ("tiktok", "client_key", str),
     "tiktok_client_secret": ("tiktok", "client_secret", str),
 }
@@ -188,10 +198,14 @@ def save_settings(data: dict):
             value = [v for v in dict.fromkeys(value) if v]
         elif kind is bool:
             value = bool(value)
+        elif kind is dict:
+            value = clean_style(value)
         elif kind is int:
             value = max(0, int(value))
         else:
             value = str(value).strip()
+            if field == "sub_quality" and value not in ("precise", "fast"):
+                continue
             if field == "facecam" and value not in ("auto", "off"):
                 continue
             if field == "facecam_position" and value not in ("top", "bottom"):
@@ -208,6 +222,23 @@ def save_settings(data: dict):
                 value = str(folder)
         cfg[section][key] = value
     save_config(cfg)
+
+
+def clean_style(v: dict) -> dict:
+    """Style de sous-titres reçu de l'interface : on ne garde que des valeurs connues."""
+    out = dict(SUB_STYLE)
+    if isinstance(v, dict):
+        if re.fullmatch(r"#[0-9a-fA-F]{6}", str(v.get("color", ""))):
+            out["color"] = v["color"]
+        if v.get("size") in ("S", "M", "L"):
+            out["size"] = v["size"]
+        if v.get("position") in ("auto", "high", "low"):
+            out["position"] = v["position"]
+        if v.get("mode") in ("karaoke", "block"):
+            out["mode"] = v["mode"]
+        if str(v.get("words")) in ("1", "2", "3"):
+            out["words"] = int(v["words"])
+    return out
 
 
 def test_twitch(client_id: str, client_secret: str) -> dict:
@@ -349,6 +380,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, UI.read_bytes(), "text/html; charset=utf-8")
             if path == "/api/state":
                 return self._json(state())
+            if path == "/sub-preview":
+                import io
+                from urllib.parse import parse_qs
+                from .media import subtitle_preview
+                q = {k: v[0] for k, v in parse_qs(urlparse(self.path).query).items()}
+                buf = io.BytesIO()
+                subtitle_preview(clean_style(q)).save(buf, "PNG")
+                return self._send(200, buf.getvalue(), "image/png")
             m = re.match(r"^/fonts/([A-Za-z0-9_-]+\.ttf)$", path)
             if m and (FONTS / m.group(1)).exists():
                 return self._file(FONTS / m.group(1), "font/ttf")
@@ -406,6 +445,12 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/open-folder":
                 reveal(output_dir(load_config()))
                 return self._json({"ok": True})
+            if path == "/api/disk":
+                from .storage import usage
+                return self._json(usage())
+            if path == "/api/clean":
+                from .storage import clean
+                return self._json(clean(None, everything_done=True))
             if path == "/api/pick-folder":
                 return self._json({"path": pick_folder()})
             if path == "/api/tiktok/login":

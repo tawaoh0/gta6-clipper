@@ -58,8 +58,8 @@ def _whisper(model_name: str):
     return WhisperModel(model_name, device="cpu", compute_type="int8")
 
 
-def transcribe(path: Path, model_name: str, language: str) -> tuple[str, list[tuple[float, float, str]]]:
-    """Renvoie (texte complet, morceaux de 1 à 3 mots avec leurs horaires)."""
+def transcribe(path: Path, model_name: str, language: str) -> tuple[str, list[list]]:
+    """Renvoie (texte complet, mots [début, fin, texte, confiance])."""
     model = _whisper(model_name)
     segments, _ = model.transcribe(
         str(path),
@@ -76,20 +76,29 @@ def transcribe(path: Path, model_name: str, language: str) -> tuple[str, list[tu
                 continue
             # Whisper coupe « t'es » en « t » + « 'es » : on recolle autour des apostrophes.
             if words and (text[0] in "'’-" or words[-1][2][-1] in "'’"):
-                s, _, prev = words[-1]
-                words[-1] = (s, w.end, prev + text)
+                s0, _, prev, pr = words[-1]
+                words[-1] = [s0, w.end, prev + text, min(pr, w.probability)]
             else:
-                words.append((w.start, w.end, text))
+                words.append([w.start, w.end, text, w.probability])
+    return " ".join(full), words
 
+
+def chunk_words(words, max_words: int = 3, max_chars: int = 18) -> list[tuple[float, float, str, list]]:
+    """Regroupe les mots en morceaux de sous-titres : (début, fin, texte, [(début, fin, mot)…]).
+
+    Les anciens clips stockaient déjà des morceaux (3 valeurs) : on les garde tels quels."""
+    if words and len(words[0]) == 3:
+        return [(a, b, t, [(a, b, t)]) for a, b, t in words]
     chunks, cur = [], []
     for w in words:
-        if cur and (len(cur) >= 3 or w[0] - cur[-1][1] > 0.6 or len(" ".join(x[2] for x in cur)) > 18):
-            chunks.append((cur[0][0], cur[-1][1], " ".join(x[2] for x in cur)))
+        a, b, t = w[0], w[1], w[2]
+        if cur and (len(cur) >= max_words or a - cur[-1][1] > 0.6 or len(" ".join(x[2] for x in cur) + t) > max_chars):
+            chunks.append((cur[0][0], cur[-1][1], " ".join(x[2] for x in cur), cur))
             cur = []
-        cur.append(w)
+        cur.append((a, b, t))
     if cur:
-        chunks.append((cur[0][0], cur[-1][1], " ".join(x[2] for x in cur)))
-    return " ".join(full), chunks
+        chunks.append((cur[0][0], cur[-1][1], " ".join(x[2] for x in cur), cur))
+    return chunks
 
 
 # ---------- images transparentes (sous-titres, crédit) ----------
@@ -112,20 +121,72 @@ def _credit_png(streamer: str, y: int, out: Path) -> Path:
     return out
 
 
-def _subtitle_png(text: str, y: int, out: Path) -> Path:
-    img = _blank()
+SUB_STYLE = {"color": "#FFE600", "size": "M", "position": "auto", "mode": "karaoke", "words": 3}
+SUB_SIZES = {"S": 64, "M": 80, "L": 96}
+
+
+def _rgb(hexcolor: str) -> tuple[int, int, int]:
+    h = hexcolor.lstrip("#")
+    try:
+        return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+    except ValueError:
+        return (255, 230, 0)
+
+
+def _subtitle_img(text: str, y: int, style: dict, active: int | None = None, width: int = W,
+                  height: int = H) -> Image.Image:
+    """Sous-titre en majuscules, contour noir épais.
+    mode « karaoke » : le mot en train d'être dit (index active) prend la couleur, les autres sont blancs.
+    mode « bloc » : la première ligne prend la couleur, comme avant."""
+    img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    font = _font(80, 900)
-    lines = textwrap.wrap(text.upper(), width=16) or [""]
-    line_h = 96
-    for i, line in enumerate(lines):
-        d.text(
-            (W / 2, y + i * line_h), line, font=font, anchor="mm",
-            fill=(255, 230, 0) if i == 0 else "white",
-            stroke_width=9, stroke_fill="black",
-        )
-    img.save(out)
-    return out
+    size = SUB_SIZES.get(style.get("size", "M"), 80)
+    font = _font(size, 900)
+    color = _rgb(style.get("color", "#FFE600"))
+    words = text.upper().split()
+    max_w = width - 120
+    lines, cur = [], []
+    for i, wd in enumerate(words):   # retour à la ligne en gardant l'index de chaque mot
+        test = " ".join(x for _, x in cur + [(i, wd)])
+        if cur and d.textlength(test, font=font) > max_w:
+            lines.append(cur)
+            cur = []
+        cur.append((i, wd))
+    if cur:
+        lines.append(cur)
+    line_h = round(size * 1.2)
+    stroke = max(6, round(size * 0.11))
+    space = d.textlength(" ", font=font)
+    karaoke = style.get("mode", "karaoke") == "karaoke"
+    for li, line in enumerate(lines):
+        widths = [d.textlength(wd, font=font) for _, wd in line]
+        x = (width - (sum(widths) + space * (len(line) - 1))) / 2
+        cy = y + li * line_h
+        for (idx, wd), wdt in zip(line, widths):
+            if karaoke:
+                fill = color if idx == active else (255, 255, 255)
+            else:
+                fill = color if li == 0 else (255, 255, 255)
+            d.text((x, cy), wd, font=font, anchor="lm", fill=fill, stroke_width=stroke, stroke_fill="black")
+            x += wdt + space
+    return img
+
+
+def subtitle_preview(style: dict, text: str = "Attends il a fait quoi", active: int = 2) -> Image.Image:
+    """Aperçu du style de sous-titres pour l'écran Réglages (une image de jeu stylisée derrière)."""
+    from PIL import ImageFilter
+    w, h = 540, 300
+    bg = Image.new("RGB", (w, h))
+    px = ImageDraw.Draw(bg)
+    for yy in range(h):
+        t = yy / h
+        px.line([(0, yy), (w, yy)], fill=(round(40 + 60 * t), round(70 + 40 * t), round(110 - 50 * t)))
+    bg = bg.filter(ImageFilter.GaussianBlur(2))
+    scale = 0.5
+    sub = _subtitle_img(text, round(h / scale * 0.5), style, active=active, width=round(w / scale), height=round(h / scale))
+    sub = sub.resize((w, h), Image.LANCZOS)
+    bg.paste(sub, (0, 0), sub)
+    return bg
 
 
 def _hook_card(text: str) -> Image.Image:
@@ -206,17 +267,27 @@ def _hook_track(text: str, y_center: int, seconds: float, work: Path) -> Path:
     return path
 
 
-def _subtitle_track(chunks, duration: float, y: int, work: Path) -> Path:
-    """Fichier concat ffmpeg : une image transparente par morceau de phrase."""
+def _subtitle_track(chunks, duration: float, y: int, work: Path, style: dict) -> Path:
+    """Fichier concat ffmpeg : une image transparente par morceau (ou par mot en mode karaoké)."""
     blank = work / "sub_blank.png"
     _blank().save(blank)
-    lines, t = [], 0.0
-    for i, (start, end, text) in enumerate(chunks):
+    lines, t, n = [], 0.0, 0
+    karaoke = style.get("mode", "karaoke") == "karaoke"
+    for start, end, text, words in chunks:
         start, end = max(start, t), min(max(end, start + 0.35), duration)
+        if end <= start:
+            continue
         if start - t > 0.01:
             lines += [f"file '{blank.name}'", f"duration {start - t:.3f}"]
-        png = _subtitle_png(text, y, work / f"sub_{i:03d}.png")
-        lines += [f"file '{png.name}'", f"duration {end - start:.3f}"]
+        # Une image par mot dit (le mot actif change de couleur), ou une seule image pour le morceau.
+        steps = [(max(ws, start), we) for ws, we, _ in words] if karaoke and len(words) > 1 else [(start, end)]
+        for k, (ws, we) in enumerate(steps):
+            ws = max(ws, start)
+            we = end if k == len(steps) - 1 else max(min(steps[k + 1][0], end), ws + 0.05)
+            png = work / f"sub_{n:04d}.png"
+            n += 1
+            _subtitle_img(text, y, style, active=k if karaoke else None).save(png)
+            lines += [f"file '{png.name}'", f"duration {max(we - ws, 0.04):.3f}"]
         t = end
     lines += [f"file '{blank.name}'", f"duration {max(duration - t, 0.1):.3f}", f"file '{blank.name}'"]
     path = work / "subs.txt"
@@ -224,11 +295,21 @@ def _subtitle_track(chunks, duration: float, y: int, work: Path) -> Path:
     return path
 
 
+def _zoom_filter(at: float, dur: float) -> str:
+    """Léger zoom avant (12 %) sur le moment fort : monte en 0,25 s, tient 1,2 s, redescend en 0,4 s."""
+    a, b, c, d = at - 0.15, at + 0.1, at + 1.3, at + 1.7
+    z = (f"if(lt(t,{a:.2f}),1,if(lt(t,{b:.2f}),1+0.12*(t-{a:.2f})/0.25,"
+         f"if(lt(t,{c:.2f}),1.12,if(lt(t,{d:.2f}),1.12-0.12*(t-{c:.2f})/0.4,1))))")
+    return (f"scale=w='trunc({W}*({z})/2)*2':h='trunc({H}*({z})/2)*2':eval=frame,"
+            f"crop={W}:{H}:(iw-{W})/2:(ih-{H})/2")
+
+
 # ---------- montage ----------
 
 def render(src: Path, out: Path, streamer: str, chunks, facecam=None, zoom: float = 1.25,
            cam_position: str = "top", start: float = 0.0, end: float | None = None,
-           hook: str = "", hook_seconds: float = 2.5, burned_band=None) -> Path:
+           hook: str = "", hook_seconds: float = 2.5, burned_band=None, sub_style: dict | None = None,
+           zoom_at: float | None = None) -> Path:
     """Monte la vidéo verticale. start/end : extrait de la source à garder (en secondes).
     hook : texte affiché en gros pendant les premières secondes (vide = aucun)."""
     info = probe(src)
@@ -237,8 +318,13 @@ def render(src: Path, out: Path, streamer: str, chunks, facecam=None, zoom: floa
     if end - start < 1:
         end = min(start + 1, info["duration"])
     dur = end - start
-    # Sous-titres recalés sur l'extrait gardé
-    chunks = [(max(a, start) - start, min(b, end) - start, t) for a, b, t in (chunks or []) if b > start and a < end]
+    # Sous-titres : mots regroupés selon le style, puis recalés sur l'extrait gardé
+    style = {**SUB_STYLE, **(sub_style or {})}
+    chunks = [
+        (max(a, start) - start, min(b, end) - start, t, [(max(x, start) - start, min(y, end) - start, w) for x, y, w in ws])
+        for a, b, t, ws in chunk_words(chunks or [], max_words=int(style.get("words", 3)))
+        if b > start and a < end
+    ]
     work = out.parent / f".{out.stem}_work"
     work.mkdir(parents=True, exist_ok=True)
 
@@ -284,12 +370,17 @@ def render(src: Path, out: Path, streamer: str, chunks, facecam=None, zoom: floa
         sub_y = (H + fg_h) // 2 + 200
         hook_y = max((H - fg_h) // 2 - 330, 260)
 
+    sub_y += {"high": -260, "low": 220}.get(style.get("position", "auto"), 0)
+    sub_y = min(max(sub_y, 120), H - 160)
+    if zoom_at is not None and 0.3 < zoom_at - start < dur - 0.5:
+        video = video.replace("[base]", "[prezoom]") + f";[prezoom]{_zoom_filter(zoom_at - start, dur)}[base]"
+
     inputs = ["-ss", f"{start:.3f}", "-to", f"{end:.3f}", "-i", str(src),
               "-loop", "1", "-i", str(_credit_png(streamer, credit_y, work / "credit.png"))]
     graph = video + ";[base][1:v]overlay=0:0[v1]"
     n, last = 2, "v1"
     if chunks:
-        subs = _subtitle_track(chunks, dur, sub_y, work)
+        subs = _subtitle_track(chunks, dur, sub_y, work, style)
         inputs += ["-f", "concat", "-safe", "0", "-i", str(subs)]
         graph += f";[{last}][{n}:v]overlay=0:0:format=auto[v{n}]"
         last, n = f"v{n}", n + 1

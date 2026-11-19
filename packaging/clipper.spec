@@ -18,7 +18,7 @@ datas = [
 ]
 binaries, hidden = [], ["clipper.web", "clipper.pipeline", "clipper.twitch", "clipper.media",
                         "clipper.facecam", "clipper.caption", "clipper.db", "clipper.tiktok",
-                        "clipper.jobs", "clipper.burned_subs", "clipper.moment", "clipper.hooks"]
+                        "clipper.jobs", "clipper.burned_subs", "clipper.moment", "clipper.hooks", "clipper.analysis", "clipper.storage"]
 for pkg in ("faster_whisper", "ctranslate2", "imageio_ffmpeg", "webview", "desktop_notifier", "yt_dlp", "av"):
     d, b, h = collect_all(pkg)
     datas += d

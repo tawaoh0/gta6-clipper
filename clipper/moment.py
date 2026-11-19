@@ -55,23 +55,9 @@ def download_window(video_id: str, a: float, b: float, dest_dir: Path) -> Path:
 
 
 def loudness(path: Path) -> np.ndarray:
-    """Volume (dB) RATE fois par seconde, en mono."""
-    import av
-
-    out = []
-    with av.open(str(path)) as c:
-        if not c.streams.audio:
-            return np.zeros(0)
-        res = av.AudioResampler(format="flt", layout="mono", rate=16000)
-        buf = np.zeros(0, dtype=np.float32)
-        step = 16000 // RATE
-        for frame in c.decode(audio=0):
-            for f in res.resample(frame):
-                buf = np.concatenate([buf, f.to_ndarray().reshape(-1)])
-                while len(buf) >= step:
-                    seg, buf = buf[:step], buf[step:]
-                    out.append(20 * np.log10(np.sqrt(np.mean(seg ** 2)) + 1e-6))
-    return np.array(out)
+    """Volume (dB) RATE fois par seconde, en mono (lu une seule fois, voir analysis.py)."""
+    from .analysis import loudness as shared
+    return shared(path)
 
 
 def _smooth(x: np.ndarray, seconds: float) -> np.ndarray:
@@ -81,14 +67,14 @@ def _smooth(x: np.ndarray, seconds: float) -> np.ndarray:
 
 def _snap_start(t: float, chunks, lo: float, hi: float) -> float:
     """Début calé juste avant une phrase (une prise de parole) proche de t."""
-    starts = [s for i, (s, _, _) in enumerate(chunks)
+    starts = [c[0] for i, c in enumerate(chunks) for s in [c[0]]
               if lo <= s <= hi and (i == 0 or s - chunks[i - 1][1] > 0.25)]
     return max(0.0, min(starts, key=lambda s: abs(s - t)) - 0.15) if starts else t
 
 
 def _snap_end(t: float, chunks, lo: float, hi: float, dur: float) -> float:
     """Fin calée juste après une fin de phrase proche de t."""
-    ends = [e for i, (_, e, _) in enumerate(chunks)
+    ends = [c[1] for i, c in enumerate(chunks) for e in [c[1]]
             if lo <= e <= hi and (i == len(chunks) - 1 or chunks[i + 1][0] - e > 0.25)]
     return min(dur, min(ends, key=lambda e: abs(e - t)) + 0.3) if ends else t
 

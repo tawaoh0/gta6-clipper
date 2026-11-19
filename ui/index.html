@@ -336,6 +336,9 @@ dialog[open] .studio { animation: pop .35s cubic-bezier(.2, .9, .25, 1.15) both;
 .ideas { display: flex; flex-wrap: wrap; gap: 6px; }
 .idea { border: 1px solid rgba(255, 46, 136, .4); background: rgba(255, 46, 136, .1); color: var(--text); border-radius: 999px; padding: 7px 12px; font: 600 12.5px var(--body); text-align: left; }
 .idea:hover { background: rgba(255, 46, 136, .22); }
+.plats { display: flex; gap: 6px; flex-wrap: wrap; }
+.plats button { border: 1px solid var(--line); background: rgba(8, 6, 14, .6); color: var(--muted); border-radius: 999px; padding: 6px 12px; font: 700 12.5px var(--body); }
+.plats button[aria-selected="true"] { color: var(--text); border-color: var(--sun-1); background: rgba(255, 46, 136, .14); }
 .legend .btn { margin-left: auto; padding: 6px 10px; font-size: 12px; }
 .tl .head { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #fff; border-radius: 2px; }
 .seg.two { grid-template-columns: repeat(3, 1fr); margin: 0; }
@@ -364,6 +367,24 @@ label.f small { display: block; color: var(--dim); font-size: 12px; margin-top: 
 .keystate { display: inline-flex; align-items: center; gap: 6px; font: 600 11px var(--mono); letter-spacing: .5px; text-transform: uppercase; color: var(--muted); }
 .link { color: var(--twitch); text-decoration: none; font-weight: 700; cursor: pointer; }
 .link:hover { text-decoration: underline; }
+.subprev { border-radius: 14px; overflow: hidden; border: 1px solid var(--line); margin-bottom: 16px; background: #000; }
+.subprev img { display: block; width: 100%; max-width: 540px; margin: 0 auto; }
+.stgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px 18px; }
+.swatches { display: flex; gap: 8px; }
+.sw { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--line); background: var(--c); padding: 0; }
+.sw[aria-pressed="true"] { border-color: #fff; box-shadow: 0 0 0 3px rgba(255, 46, 136, .5); }
+.pick { display: flex; gap: 4px; padding: 4px; border-radius: 11px; background: rgba(8, 6, 14, .7); border: 1px solid var(--line); }
+.pick button { flex: 1; border: 0; background: none; padding: 8px 6px; border-radius: 8px; font-weight: 700; font-size: 13px; color: var(--muted); }
+.pick button[aria-pressed="true"] { background: var(--panel-solid); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
+.pick.wide button { text-align: left; padding: 10px 12px; }
+.pick.wide small { display: block; font-weight: 500; font-size: 12px; color: var(--dim); margin-top: 3px; }
+.sel { width: 100%; background: rgba(8, 6, 14, .7); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; color: var(--text); font: 600 14px var(--body); }
+.diskbar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--line); }
+.diskbar i, .disklegend i { display: block; }
+.disklegend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+.disklegend span { display: inline-flex; align-items: center; gap: 6px; }
+.disklegend i { width: 10px; height: 10px; border-radius: 3px; }
+.d0 { background: var(--sun-1); } .d1 { background: #6b6182; } .d2 { background: var(--twitch); } .d3 { background: var(--sun-3); }
 .settings-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 20px; align-items: start; }
 .snav { position: sticky; top: 0; display: grid; gap: 4px; padding: 8px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line-soft); }
 .snav button { display: flex; align-items: center; gap: 10px; border: 0; background: none; padding: 10px 12px; border-radius: 10px; color: var(--muted); font-weight: 700; font-size: 14px; text-align: left; }
@@ -494,8 +515,13 @@ label.f small { display: block; color: var(--dim); font-size: 12px; margin-top: 
         <button data-mode="edit" aria-selected="false">Ajuster la vidéo</button>
       </div>
       <div class="pane" id="pPublish">
+      <div class="plats" role="tablist" aria-label="Réseau">
+        <button data-plat="tiktok" aria-selected="true">TikTok</button>
+        <button data-plat="shorts" aria-selected="false">YouTube Shorts</button>
+        <button data-plat="reels" aria-selected="false">Instagram Reels</button>
+      </div>
       <div>
-        <label class="f"><span>Légende TikTok (modifiable)</span></label>
+        <label class="f"><span id="sCapLabel">Légende TikTok (modifiable)</span></label>
         <textarea id="sCaption" aria-label="Légende TikTok"></textarea>
         <div class="saved" id="sSaved"></div>
       </div>
@@ -504,7 +530,7 @@ label.f small { display: block; color: var(--dim); font-size: 12px; margin-top: 
           <button class="btn sun" id="sCopy">Copier</button></li>
         <li data-step="reveal"><div class="lbl"><b>Trouver la vidéo</b><span class="file-name" id="sFile"></span></div>
           <button class="btn" id="sReveal">Afficher</button></li>
-        <li data-step="tiktok"><div class="lbl"><b>Publier sur TikTok</b><span id="sTiktokHint">Importe la vidéo, colle la légende.</span></div>
+        <li data-step="tiktok"><div class="lbl"><b id="sPubTitle">Publier sur TikTok</b><span id="sTiktokHint">Importe la vidéo, colle la légende.</span></div>
           <span class="acts" id="sTiktokBtns"></span></li>
         <li data-step="posted"><div class="lbl"><b>Ranger le clip</b><span>Une fois publié, il passe dans « Publiés ».</span></div>
           <span id="sActions"></span></li>
@@ -677,6 +703,7 @@ const SECTIONS = [
   ["streamers", "Streamers", '<path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1"/><circle cx="9" cy="7" r="3.5"/><path d="M22 19v-1a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>'],
   ["clips", "Choix des clips", '<path d="M3 5h18M6 12h12M10 19h4"/>'],
   ["montage", "Montage", '<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M6 9h12"/>'],
+  ["subtitles", "Sous-titres", '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15h4M13 15h4M7 11h10"/>'],
   ["videos", "Dossier des vidéos", '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'],
   ["connexions", "Connexions", '<path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/>'],
   ["tiktok", "TikTok", '<path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3c.5 2.6 2.4 4.4 5 4.6"/>'],
@@ -749,8 +776,33 @@ const SECTION_HTML = {
         ${seg("bottom", "Cam en dessous", '<span class="mini"><i class="g"></i><i class="c"></i></span>')}
         ${seg("off", "Sans cam", '<span class="mini"><i class="b"></i></span>')}
       </div>
+      ${check(d, "reaction_zoom", "Zoom sur la réaction", "Léger zoom avant au moment fort (quand le son monte), comme dans les montages TikTok.")}
       ${check(d, "remove_burned_subs", "Retirer les sous-titres du stream", "Si le streamer a déjà ses sous-titres à l'image, on coupe cette bande pour éviter d'en avoir deux.")}
       ${check(d, "hook_on_screen", "Accroche à l'écran", "Une phrase dite dans le clip s'affiche en gros pendant 2,5 s. Modifiable clip par clip dans « Ajuster la vidéo ».")}
+    </div>`;
+  },
+  subtitles: d => {
+    const st = d.sub_style;
+    const opt = (key, val, label) => `<button type="button" data-st="${key}" data-val="${val}" aria-pressed="${String(st[key]) === String(val)}">${label}</button>`;
+    const colors = [["#FFE600", "Jaune"], ["#FFFFFF", "Blanc"], ["#3FE0A0", "Vert"], ["#FF2E88", "Rose"], ["#5CC8FF", "Bleu"]];
+    const q = new URLSearchParams({ ...st, t: Date.now() % 100000 });
+    return `<div class="box">
+      <h3>Sous-titres</h3>
+      <p class="hint">Le style s'applique aux prochains clips, et à ceux que tu remontes.</p>
+      <div class="subprev"><img src="/sub-preview?${q}" alt="Aperçu du style des sous-titres"></div>
+      <div class="stgrid">
+        <div><label class="f"><span>Couleur</span></label><div class="swatches">${colors.map(([c, n]) =>
+          `<button type="button" class="sw" data-st="color" data-val="${c}" aria-pressed="${st.color === c}" title="${n}" style="--c:${c}"></button>`).join("")}</div></div>
+        <div><label class="f"><span>Taille</span></label><div class="pick">${opt("size", "S", "Petit")}${opt("size", "M", "Moyen")}${opt("size", "L", "Grand")}</div></div>
+        <div><label class="f"><span>Animation</span></label><div class="pick">${opt("mode", "karaoke", "Mot surligné")}${opt("mode", "block", "Bloc")}</div></div>
+        <div><label class="f"><span>Mots à la fois</span></label><div class="pick">${opt("words", 1, "1")}${opt("words", 2, "2")}${opt("words", 3, "3")}</div></div>
+        <div><label class="f"><span>Position</span></label><div class="pick">${opt("position", "high", "Plus haut")}${opt("position", "auto", "Normale")}${opt("position", "low", "Plus bas")}</div></div>
+      </div>
+      <label class="f" style="margin-top:18px"><span>Qualité de la transcription</span></label>
+      <div class="pick wide">
+        <button type="button" data-q="precise" aria-pressed="${d.sub_quality === "precise"}"><b>Précise</b><small>Meilleure orthographe et ponctuation. Un peu plus lente.</small></button>
+        <button type="button" data-q="fast" aria-pressed="${d.sub_quality === "fast"}"><b>Rapide</b><small>Environ 1,5× plus rapide, plus d'erreurs.</small></button>
+      </div>
     </div>`;
   },
   videos: d => {
@@ -767,6 +819,17 @@ const SECTION_HTML = {
         ${d.output_dir ? `<button class="btn ghost" data-folder-default type="button">Revenir au dossier par défaut</button>` : "<span></span>"}
         <button class="btn" data-open-folder type="button">Ouvrir dans ${FINDER}</button>
       </div>
+    </div>
+    <div class="box" style="margin-top:18px">
+      <h3>Place sur le disque</h3>
+      <div class="disk" id="disk">${diskHTML()}</div>
+      <label class="f" style="margin-top:16px"><span>Supprimer automatiquement</span>
+        <select data-k="clean_after_days" class="sel">
+          ${[[0, "Jamais"], [7, "après 7 jours"], [14, "après 14 jours"], [30, "après 30 jours"], [60, "après 60 jours"]].map(([v, l]) => `<option value="${v}" ${+d.clean_after_days === v ? "selected" : ""}>${l}</option>`).join("")}
+        </select>
+        <small>Les vidéos <b>publiées</b> ou <b>écartées</b>, et leur vidéo d'origine. Celles « à poster » ne sont jamais supprimées.</small></label>
+      <div class="folder-line" style="margin-top:14px"><span class="hint" style="margin:0">Libère tout de suite la place des clips publiés et écartés.</span>
+        <button class="btn danger" data-clean type="button">Nettoyer maintenant</button></div>
     </div>`;
   },
   connexions: d => `<div class="box">
@@ -803,8 +866,20 @@ const SECTION_HTML = {
     </div>`,
 };
 
+let disk = null;
+const gb = n => n >= 1e9 ? `${(n / 1e9).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} Go` : `${Math.round(n / 1e6)} Mo`;
+function diskHTML() {
+  if (!disk) { api("/api/disk", {}).then(r => { disk = r; const el = $("#disk"); if (el) el.innerHTML = diskHTML(); }); return '<span class="hint">Calcul…</span>'; }
+  const rows = [["À poster", disk.todo], ["Publiées et écartées", disk.done], ["Vidéos d'origine (pour ajuster)", disk.sources], ["Miniatures", disk.cache]];
+  const total = rows.reduce((a, [, v]) => a + v, 0) || 1;
+  return `<div class="diskbar">${rows.map(([, v], i) => `<i class="d${i}" style="width:${(v / total) * 100}%"></i>`).join("")}</div>
+    <div class="disklegend">${rows.map(([l, v], i) => `<span><i class="d${i}"></i>${l} <b>${gb(v)}</b></span>`).join("")}</div>
+    <div class="hint" style="margin:8px 0 0">Total : <b>${gb(total)}</b></div>`;
+}
+
 function collectDraft() {
   document.querySelectorAll("#view [data-k]").forEach(i => settingsDraft[i.dataset.k] = +i.value);
+  settingsDraft.sub_style = settingsDraft.sub_style || {};
   document.querySelectorAll("#view [data-s]").forEach(i => settingsDraft[i.dataset.s] = i.value);
   document.querySelectorAll("#view [data-b]").forEach(i => settingsDraft[i.dataset.b] = i.checked);
 }
@@ -836,7 +911,8 @@ function render() {
   // On ne redessine que si quelque chose a changé : sinon un clic tombe sur une carte remplacée.
   if (!fresh && view._html === html) return;
   view._html = html;
-  view.classList.toggle("calm", !fresh); // pas d'animation d'entrée sur une simple mise à jour
+  view.classList.toggle("calm", !fresh || calmOnce); // pas d'animation d'entrée sur une simple mise à jour
+  calmOnce = false;
   const keep = fresh ? 0 : ($("#view .grid")?.scrollLeft || 0);
   view.innerHTML = html;
   if (keep) { const g = $("#view .grid"); if (g) { g.style.scrollBehavior = "auto"; g.scrollLeft = keep; g.style.scrollBehavior = ""; } }
@@ -867,6 +943,8 @@ document.addEventListener("keydown", e => {
   if (e.key === "ArrowRight") g.scrollBy({ left: g.clientWidth * .8 });
   if (e.key === "ArrowLeft") g.scrollBy({ left: -g.clientWidth * .8 });
 });
+let calmOnce = false;
+function calmRerender() { calmOnce = true; rerender(); }   // redessin sans animation (clic sur une option)
 function rerender() { $("#view").dataset.tab = ""; render(); }
 function goSettings() { tab = "settings"; settingsDraft = null; rerender(); }
 
@@ -885,7 +963,7 @@ function openStudio(id) {
   document.querySelectorAll("#sSteps li").forEach(li => li.classList.remove("done"));
   ed = null;
   setMode("publish");
-  renderTiktok();
+  setPlat("tiktok");
   const done = c.status === "posted" || c.status === "discarded";
   $("#sActions").innerHTML = done
     ? `<button class="btn" data-act="restore">${ICON.undo} Remettre dans la file</button>`
@@ -897,7 +975,7 @@ function closeStudio() { ed = null; $("#player").pause(); $("#player").removeAtt
 const stepDone = k => $(`#sSteps li[data-step="${k}"]`)?.classList.add("done");
 
 async function saveCaption() {
-  if (!current) return;
+  if (!current || plat !== "tiktok") return;
   const v = $("#sCaption").value;
   if (v === current.caption) return;
   await api(`/api/clip/${encodeURIComponent(current.id)}/caption`, { caption: v });
@@ -931,7 +1009,7 @@ function startEdit() {
   try { rect = c.facecam ? JSON.parse(c.facecam) : null; } catch {}
   let band = null;
   try { band = c.burned_band ? JSON.parse(c.burned_band) : null; } catch {}
-  ed = { burned: band === false ? "keep" : "remove", start: c.trim_start || 0, end: c.trim_end || null, dur: null, cam: "keep", rect: rect || [0.02, 0.05, 0.26, 0.3],
+  ed = { zoom: c.zoom_at != null || !!S.settings.reaction_zoom, burned: band === false ? "keep" : "remove", start: c.trim_start || 0, end: c.trim_end || null, dur: null, cam: "keep", rect: rect || [0.02, 0.05, 0.26, 0.3],
          hadCam: !!rect, pos: c.cam_position || "top", hook: c.hook ?? "", frameT: 1.5 };
 }
 
@@ -969,6 +1047,10 @@ function renderEdit() {
           <div class="rect" id="camRect"><i></i></div></div>
         <button class="btn ghost" data-frame>Prendre l'image du moment affiché</button>` : ""}
       ${ed.cam !== "none" ? `<div class="posrow"><button class="btn" data-pos="top" aria-pressed="${ed.pos === "top"}">Cam au-dessus</button><button class="btn" data-pos="bottom" aria-pressed="${ed.pos === "bottom"}">Cam en dessous</button></div>` : `<p class="hint">Toute l'image sera gardée, sur un fond flouté.</p>`}
+    </div>
+    <div class="ed">
+      <h4>Zoom sur la réaction</h4>
+      <div class="posrow"><button class="btn" data-zoom="1" aria-pressed="${ed.zoom}">Avec zoom</button><button class="btn" data-zoom="0" aria-pressed="${!ed.zoom}">Sans zoom</button></div>
     </div>
     <div class="ed">
       <h4>Sous-titres du stream</h4>
@@ -1053,6 +1135,8 @@ $("#studio").addEventListener("click", async e => {
   }
   const idea = e.target.closest("[data-idea]");
   if (idea) { ed.hook = idea.dataset.idea; return renderEdit(); }
+  const zb = e.target.closest("[data-zoom]");
+  if (zb) { ed.zoom = zb.dataset.zoom === "1"; ed.hook = $("#edHook")?.value ?? ed.hook; return renderEdit(); }
   const bu = e.target.closest("[data-burned]");
   if (bu) { ed.burned = bu.dataset.burned; ed.hook = $("#edHook")?.value ?? ed.hook; return renderEdit(); }
   const ps = e.target.closest("[data-pos]");
@@ -1060,7 +1144,7 @@ $("#studio").addEventListener("click", async e => {
   if (e.target.closest("[data-frame]")) { ed.frameT = Math.round(P().currentTime * 10) / 10; ed.hook = $("#edHook")?.value ?? ed.hook; return renderEdit(); }
   if (e.target.closest("#edGo")) {
     ed.hook = $("#edHook").value;
-    const body = { start: ed.start, end: ed.end, hook: ed.hook, cam_position: ed.pos, burned: ed.burned,
+    const body = { start: ed.start, end: ed.end, hook: ed.hook, cam_position: ed.pos, burned: ed.burned, zoom: ed.zoom,
                    cam: ed.cam === "manual" ? ed.rect : ed.cam };
     await api(`/api/clip/${encodeURIComponent(current.id)}/rerender`, body);
     await waitJob(`render:${current.id}`, "Vidéo remontée");
@@ -1084,9 +1168,46 @@ async function waitJob(key, okMsg) {
   render();
 }
 
+// ---------- légendes par réseau ----------
+let plat = "tiktok";
+const PLATS = {
+  tiktok: { label: "Légende TikTok (modifiable)", title: "Publier sur TikTok", url: TIKTOK_UPLOAD },
+  shorts: { label: "Description YouTube Shorts (la 1re ligne sert de titre)", title: "Publier sur YouTube Shorts", url: "https://studio.youtube.com/" },
+  reels: { label: "Légende Instagram Reels", title: "Publier sur Instagram", url: "https://www.instagram.com/" },
+};
+function captionFor(cap, p) {
+  if (p === "tiktok") return cap;
+  const lines = (cap || "").split("\n").map(l => l.trim()).filter(Boolean);
+  const tagsLine = lines.filter(l => l.startsWith("#")).pop() || "";
+  const tags = tagsLine.split(/\s+/).filter(t => t.startsWith("#"));
+  const credit = lines.find(l => l.startsWith("🎥")) || "";
+  const hook = (lines.find(l => !l.startsWith("#") && !l.startsWith("🎥")) || "").slice(0, 95);
+  if (p === "shorts") {  // YouTube : titre court (≤ 100 car.), puis description, #Shorts en premier pour la visibilité
+    return `${hook} #Shorts\n\n${credit}\n\n${["#Shorts", ...tags.slice(0, 4)].join(" ")}`;
+  }
+  // Instagram conseille 3 à 5 hashtags
+  return `${hook}\n\n${credit}\n\n${[...tags.slice(0, 4), "#reels"].join(" ")}`;
+}
+function setPlat(p) {
+  plat = p;
+  document.querySelectorAll("[data-plat]").forEach(b => b.setAttribute("aria-selected", b.dataset.plat === p));
+  $("#sCapLabel").textContent = PLATS[p].label;
+  $("#sPubTitle").textContent = PLATS[p].title;
+  $("#sCaption").value = captionFor(current?.caption || "", p);
+  $("#sCaption").readOnly = p !== "tiktok";
+  $("#sSaved").textContent = p === "tiktok" ? "" : "Adaptée depuis la légende TikTok : modifie celle-ci pour changer le texte.";
+  renderTiktok();
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-plat]"); if (b) setPlat(b.dataset.plat); });
+
 // ---------- TikTok dans la fiche ----------
 function renderTiktok() {
   if (!current) return;
+  if (plat !== "tiktok") {
+    $("#sTiktokHint").textContent = plat === "shorts" ? "Importe la vidéo dans YouTube Studio (bouton Créer), colle le texte." : "Crée un Reel depuis Instagram, importe la vidéo, colle la légende.";
+    $("#sTiktokBtns").innerHTML = `<button class="btn" id="sPlatOpen">Ouvrir ${plat === "shorts" ? "YouTube Studio" : "Instagram"} ↗</button>`;
+    return;
+  }
   const tk = S.tiktok || {}, job = S.jobs?.[`tiktok:${current.id}`];
   const sent = current.status === "sent" || job?.state === "done";
   if (tk.connected) {
@@ -1104,6 +1225,7 @@ function renderTiktok() {
 $("#sTiktokBtns").addEventListener("click", async e => {
   if (!current) return;
   if (e.target.closest("#sTiktok")) { openExt(TIKTOK_UPLOAD); stepDone("tiktok"); }
+  if (e.target.closest("#sPlatOpen")) { openExt(PLATS[plat].url); stepDone("tiktok"); }
   if (e.target.closest("#sSend")) {
     await api(`/api/clip/${encodeURIComponent(current.id)}/tiktok`, {});
     await waitJob(`tiktok:${current.id}`, "Brouillon envoyé");
@@ -1251,14 +1373,29 @@ $("#view").addEventListener("click", async e => {
     if (v !== "off") settingsDraft.facecam_position = v;
     return rerender();
   }
+  const stb = e.target.closest("[data-st]");
+  if (stb) {
+    collectDraft();
+    const v = stb.dataset.val;
+    settingsDraft.sub_style = { ...settingsDraft.sub_style, [stb.dataset.st]: stb.dataset.st === "words" ? +v : v };
+    return calmRerender();
+  }
+  const qb = e.target.closest("[data-q]");
+  if (qb) { collectDraft(); settingsDraft.sub_quality = qb.dataset.q; return calmRerender(); }
+  if (e.target.closest("[data-clean]")) {
+    if (!confirm("Supprimer définitivement les vidéos des clips publiés et écartés, et leurs vidéos d'origine ? Les clips « à poster » ne sont pas touchés.")) return;
+    const r = await api("/api/clean", {});
+    toast(r.clips ? `${r.clips} clip(s) nettoyé(s), ${gb(r.freed)} libérés` : "Rien à nettoyer");
+    disk = null; collectDraft(); return rerender();
+  }
   const secBtn = e.target.closest("[data-sec]");
-  if (secBtn) { collectDraft(); settingsSection = secBtn.dataset.sec; rerender(); $("#view").scrollTop = 0; return; }
+  if (secBtn) { collectDraft(); settingsSection = secBtn.dataset.sec; if (settingsSection === "videos") disk = null; rerender(); $("#view").scrollTop = 0; return; }
   const pz = e.target.closest("[data-pause]");
   if (pz) {
     collectDraft();
     const w = pz.dataset.pause, p = settingsDraft.paused || (settingsDraft.paused = []);
     settingsDraft.paused = p.includes(w) ? p.filter(x => x !== w) : [...p, w];
-    return rerender();
+    return calmRerender();
   }
   if (e.target.closest("[data-pick-folder]")) {
     collectDraft();

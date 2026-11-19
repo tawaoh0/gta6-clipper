@@ -52,7 +52,8 @@ def main(argv):
         cfg = load_config()
         src = Path(argv[2]).resolve()
         streamer = argv[3] if len(argv) > 3 else "streamer"
-        _, chunks = transcribe(src, cfg["pipeline"]["whisper_model"], cfg["pipeline"]["language"])
+        from .config import whisper_model
+        _, chunks = transcribe(src, whisper_model(cfg), cfg["pipeline"]["language"])
         out = output_dir(cfg) / f"test_{src.stem}.mp4"
         render(src, out, streamer, chunks, facecam=find_facecam(cfg, streamer, src),
                zoom=cfg["pipeline"]["zoom"], cam_position=cfg["pipeline"]["facecam_position"])

@@ -88,16 +88,28 @@ def _rerender(clip_id: str, opts: dict) -> str:
         band = None
         journal.update(conn, clip_id, burned_band=json.dumps(False))
 
+    zoom_at = None
+    if opts.get("zoom", cfg["pipeline"].get("reaction_zoom", True)):
+        from .hooks import _peak
+        zoom_at = _peak(src, start, end)
+
     out = Path(r["video_path"])
     tmp = out.with_name(out.stem + ".new.mp4")
     render(src, tmp, r["streamer"], json.loads(r["chunks"] or "[]"), facecam=facecam,
            zoom=cfg["pipeline"]["zoom"], cam_position=cam_position, start=start, end=end,
-           hook=hook, hook_seconds=cfg["pipeline"].get("hook_seconds", 2.5), burned_band=band)
+           hook=hook, hook_seconds=cfg["pipeline"].get("hook_seconds", 2.5), burned_band=band,
+           sub_style=cfg["pipeline"].get("sub_style"), zoom_at=zoom_at)
     tmp.replace(out)
     (THUMBS / f"{clip_id}.jpg").unlink(missing_ok=True)
-    journal.update(conn, clip_id, trim_start=start, trim_end=end if end < dur - 0.05 else None,
+    # La légende commence par l'accroche : si elle n'a pas été réécrite à la main, on la met à jour.
+    caption = r["caption"] or ""
+    first, _, rest = caption.partition("\n")
+    if hook and first.strip() in (r["hook"] or "", r["title"] or "") and first.strip() != hook:
+        caption = hook + ("\n" + rest if rest else "")
+        Path(r["video_path"]).with_suffix(".txt").write_text(caption, encoding="utf-8")
+    journal.update(conn, clip_id, caption=caption, trim_start=start, trim_end=end if end < dur - 0.05 else None,
                    facecam=json.dumps(facecam) if facecam else None, cam_position=cam_position,
-                   hook=hook, ready_at=time.time())
+                   hook=hook, ready_at=time.time(), zoom_at=zoom_at)
     return "Vidéo remontée"
 
 

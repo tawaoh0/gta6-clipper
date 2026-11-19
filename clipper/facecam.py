@@ -1,6 +1,6 @@
 """Détection automatique de la facecam, refaite pour chaque clip.
 
-1. On prend 16 images réparties sur le clip.
+1. On prend 20 images réparties sur le clip (lues une seule fois, voir analysis.py).
 2. On y cherche tous les visages (YuNet, le détecteur de visages d'OpenCV).
 3. On regroupe les visages qui restent au même endroit d'une image à l'autre.
 4. Pour chaque groupe, on cherche le cadre autour (lignes droites continues sur
@@ -30,17 +30,8 @@ FULLSCREEN = 0.35    # cam > 35 % de l'écran = streamer en plein écran
 
 
 def _frames(path: Path) -> list[np.ndarray]:
-    cap = cv2.VideoCapture(str(path))
-    n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 1
-    out = []
-    for i in range(SAMPLES):
-        cap.set(cv2.CAP_PROP_POS_FRAMES, int((i + 0.5) * n / SAMPLES))
-        ok, f = cap.read()
-        if ok:
-            h, w = f.shape[:2]
-            out.append(cv2.resize(f, (WORK_W, round(h * WORK_W / w))))
-    cap.release()
-    return out
+    from .analysis import frames
+    return frames(path)
 
 
 def _face_groups(frames) -> list[dict]:

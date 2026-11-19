@@ -26,15 +26,8 @@ def _model():
 
 
 def _frames(path: Path, n: int):
-    cap = cv2.VideoCapture(str(path))
-    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
-    idx = np.linspace(total * 0.03, total * 0.97, n).astype(int) if total else range(n)
-    for i in idx:
-        cap.set(cv2.CAP_PROP_POS_FRAMES, int(i))
-        ok, f = cap.read()
-        if ok:
-            yield f
-    cap.release()
+    from .analysis import frames
+    yield from frames(path)
 
 
 def detect(path: Path) -> tuple[tuple[float, float] | None, str]:
