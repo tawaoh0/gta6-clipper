@@ -83,6 +83,21 @@ def transcribe(path: Path, model_name: str, language: str) -> tuple[str, list[li
     return " ".join(full), words
 
 
+def translate_en(path: Path, language: str) -> list[list]:
+    """Sous-titres traduits en anglais par Whisper (modèle « small » : le modèle turbo ne traduit pas)."""
+    model = _whisper("small")
+    segments, _ = model.transcribe(str(path), task="translate",
+                                   language=None if language == "auto" else language,
+                                   word_timestamps=True, vad_filter=True)
+    words = []
+    for seg in segments:
+        for w in seg.words or []:
+            t = w.word.strip()
+            if t:
+                words.append([w.start, w.end, t, w.probability])
+    return words
+
+
 def chunk_words(words, max_words: int = 3, max_chars: int = 18) -> list[tuple[float, float, str, list]]:
     """Regroupe les mots en morceaux de sous-titres : (début, fin, texte, [(début, fin, mot)…]).
 
@@ -267,9 +282,9 @@ def _hook_track(text: str, y_center: int, seconds: float, work: Path) -> Path:
     return path
 
 
-def _subtitle_track(chunks, duration: float, y: int, work: Path, style: dict) -> Path:
+def _subtitle_track(chunks, duration: float, y: int, work: Path, style: dict, name: str = "subs") -> Path:
     """Fichier concat ffmpeg : une image transparente par morceau (ou par mot en mode karaoké)."""
-    blank = work / "sub_blank.png"
+    blank = work / f"{name}_blank.png"
     _blank().save(blank)
     lines, t, n = [], 0.0, 0
     karaoke = style.get("mode", "karaoke") == "karaoke"
@@ -284,13 +299,13 @@ def _subtitle_track(chunks, duration: float, y: int, work: Path, style: dict) ->
         for k, (ws, we) in enumerate(steps):
             ws = max(ws, start)
             we = end if k == len(steps) - 1 else max(min(steps[k + 1][0], end), ws + 0.05)
-            png = work / f"sub_{n:04d}.png"
+            png = work / f"{name}_{n:04d}.png"
             n += 1
             _subtitle_img(text, y, style, active=k if karaoke else None).save(png)
             lines += [f"file '{png.name}'", f"duration {max(we - ws, 0.04):.3f}"]
         t = end
     lines += [f"file '{blank.name}'", f"duration {max(duration - t, 0.1):.3f}", f"file '{blank.name}'"]
-    path = work / "subs.txt"
+    path = work / f"{name}.txt"
     path.write_text("\n".join(lines) + "\n")
     return path
 
@@ -309,9 +324,13 @@ def _zoom_filter(at: float, dur: float) -> str:
 def render(src: Path, out: Path, streamer: str, chunks, facecam=None, zoom: float = 1.25,
            cam_position: str = "top", start: float = 0.0, end: float | None = None,
            hook: str = "", hook_seconds: float = 2.5, burned_band=None, sub_style: dict | None = None,
-           zoom_at: float | None = None) -> Path:
+           zoom_at: float | None = None, extras: dict | None = None) -> Path:
     """Monte la vidéo verticale. start/end : extrait de la source à garder (en secondes).
-    hook : texte affiché en gros pendant les premières secondes (vide = aucun)."""
+    hook : texte affiché en gros pendant les premières secondes (vide = aucun).
+    extras (options) : emojis [(instant source, code)], sfx {on, volume}, watermark {text, logo, corner,
+    opacity}, sub_lang fr|en|both + subs_en (mots traduits en anglais)."""
+    from . import effects
+    extras = extras or {}
     info = probe(src)
     start = max(0.0, min(start or 0.0, info["duration"] - 1))
     end = min(end or info["duration"], info["duration"])
@@ -320,11 +339,20 @@ def render(src: Path, out: Path, streamer: str, chunks, facecam=None, zoom: floa
     dur = end - start
     # Sous-titres : mots regroupés selon le style, puis recalés sur l'extrait gardé
     style = {**SUB_STYLE, **(sub_style or {})}
-    chunks = [
-        (max(a, start) - start, min(b, end) - start, t, [(max(x, start) - start, min(y, end) - start, w) for x, y, w in ws])
-        for a, b, t, ws in chunk_words(chunks or [], max_words=int(style.get("words", 3)))
-        if b > start and a < end
-    ]
+
+    def cut(words, max_words):
+        return [
+            (max(a, start) - start, min(b, end) - start, t,
+             [(max(x, start) - start, min(y, end) - start, w) for x, y, w in ws])
+            for a, b, t, ws in chunk_words(words or [], max_words=max_words)
+            if b > start and a < end
+        ]
+
+    lang = extras.get("sub_lang", "fr")
+    subs_en = extras.get("subs_en") or []
+    main_words = subs_en if lang == "en" and subs_en else chunks
+    second = cut(subs_en, 6) if lang == "both" and subs_en else []
+    chunks = cut(main_words, int(style.get("words", 3)))
     work = out.parent / f".{out.stem}_work"
     work.mkdir(parents=True, exist_ok=True)
 
@@ -375,6 +403,8 @@ def render(src: Path, out: Path, streamer: str, chunks, facecam=None, zoom: floa
     if zoom_at is not None and 0.3 < zoom_at - start < dur - 0.5:
         video = video.replace("[base]", "[prezoom]") + f";[prezoom]{_zoom_filter(zoom_at - start, dur)}[base]"
 
+    emoji_x, emoji_y = W - 180, max(credit_y - 150, 170)
+
     inputs = ["-ss", f"{start:.3f}", "-to", f"{end:.3f}", "-i", str(src),
               "-loop", "1", "-i", str(_credit_png(streamer, credit_y, work / "credit.png"))]
     graph = video + ";[base][1:v]overlay=0:0[v1]"
@@ -384,18 +414,50 @@ def render(src: Path, out: Path, streamer: str, chunks, facecam=None, zoom: floa
         inputs += ["-f", "concat", "-safe", "0", "-i", str(subs)]
         graph += f";[{last}][{n}:v]overlay=0:0:format=auto[v{n}]"
         last, n = f"v{n}", n + 1
+    if second:   # sous-titres anglais, plus petits, sous les sous-titres français
+        en_style = {**style, "size": "S", "mode": "block", "color": "#FFFFFF"}
+        track = _subtitle_track(second, dur, min(sub_y + 150, H - 120), work, en_style, name="subs_en")
+        inputs += ["-f", "concat", "-safe", "0", "-i", str(track)]
+        graph += f";[{last}][{n}:v]overlay=0:0:format=auto[v{n}]"
+        last, n = f"v{n}", n + 1
+    emojis = [(t - start, cp) for t, cp in extras.get("emojis", []) if start <= t <= end]
+    emo = effects.emoji_track(emojis, dur, emoji_x, emoji_y, work) if emojis else None
+    if emo:
+        inputs += ["-f", "concat", "-safe", "0", "-i", str(emo)]
+        graph += f";[{last}][{n}:v]overlay=0:0:format=auto:eof_action=pass[v{n}]"
+        last, n = f"v{n}", n + 1
     if hook.strip():
         inputs += ["-f", "concat", "-safe", "0", "-i", str(_hook_track(hook, hook_y, hook_seconds, work))]
         graph += f";[{last}][{n}:v]overlay=0:0:format=auto:eof_action=pass[v{n}]"
         last, n = f"v{n}", n + 1
+    wm = effects.watermark_png(extras.get("watermark") or {}, work, _font)
+    if wm:
+        inputs += ["-loop", "1", "-i", str(wm)]
+        graph += f";[{last}][{n}:v]overlay=0:0[v{n}]"
+        last, n = f"v{n}", n + 1
     graph += f";[{last}]null[v]"
+
+    # Bruitages : whoosh au début du zoom, boom sur le moment fort, pop à chaque emoji.
+    audio_map = "0:a:0"
+    sfx = extras.get("sfx") or {}
+    if sfx.get("on") and info["has_audio"]:
+        events = []
+        if zoom_at is not None and 0.3 < zoom_at - start < dur - 0.5:
+            events += [(zoom_at - start - 0.4, "whoosh"), (zoom_at - start, "boom")]
+        events += [(t, "pop") for t, _ in emojis]
+        args, labels = effects.sfx_inputs(events, float(sfx.get("volume", 1.0)))
+        if labels:
+            inputs += args
+            agraph, audio_map = effects.sfx_graph(n, labels, float(sfx.get("volume", 1.0)))
+            graph += ";" + agraph
+            n += len(labels)
 
     cmd = [
         ffmpeg(), "-y", "-hide_banner", "-loglevel", "error", *inputs,
         "-filter_complex", graph, "-map", "[v]",
     ]
     if info["has_audio"]:
-        cmd += ["-map", "0:a:0", "-c:a", "aac", "-b:a", "160k"]
+        cmd += ["-map", audio_map, "-c:a", "aac", "-b:a", "160k"]
     cmd += [
         "-t", f"{dur:.3f}", "-r", "30", *video_encoder(),
         "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(out),

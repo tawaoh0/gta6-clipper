@@ -52,11 +52,22 @@ DEFAULTS = {
         "sub_quality": "precise",   # precise = modèle turbo (plus juste) ; fast = modèle small (plus rapide)
         "sub_style": {"color": "#FFE600", "size": "M", "position": "auto", "mode": "karaoke", "words": 3},
         "reaction_zoom": True,      # léger zoom avant au moment fort
+        "sub_lang": "fr",           # fr | en (traduits) | both (français + anglais en dessous)
+        "emojis": False,            # emojis automatiques (rires, choc…)
+        "sfx": False,               # bruitages sur les réactions
+        "sfx_volume": 1.0,
+        "watermark": {"on": False, "text": "", "logo": "", "corner": "tr", "opacity": 0.75},
+        "top_clips": 5,             # compilation « Top du jour » : nombre de clips
+        "top_seconds": 11,          # … et durée gardée par clip
+        "auto_top": False,          # coché : chaque passage crée / met à jour le Top du jour
+        "auto_parts": False,        # découper automatiquement les clips longs en plusieurs parties
+        "part_seconds": 30,         # durée visée d'une partie
         "remove_burned_subs": True,
         "smart_cut": True,          # recadrer sur le meilleur moment grâce à la VOD  # retirer les sous-titres déjà incrustés par le stream
         "keep_sources_days": 7,
         "clean_after_days": 30,     # supprimer les vidéos publiées / écartées après N jours (0 = jamais)     # garder la vidéo d'origine pour pouvoir remonter le clip
     },
+    "youtube": {"client_id": "", "client_secret": "", "privacy": "private"},
     "tiktok": {"enabled": False, "client_key": "", "client_secret": "", "redirect_port": 3455},
     "claude": {"enabled": True, "model": "claude-opus-5-5", "api_key": ""},
 }

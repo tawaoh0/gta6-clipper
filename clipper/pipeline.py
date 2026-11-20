@@ -44,6 +44,7 @@ def prepare(cfg, conn, clip) -> bool:
     from .caption import write_caption
     from .media import download, render, transcribe
     from .moment import best_range, download_window, window as window_of
+    from .options import defaults as clip_defaults, make_extras
 
     p = cfg["pipeline"]
     day_dir = output_dir(cfg) / datetime.now().strftime("%Y-%m-%d")
@@ -70,6 +71,11 @@ def prepare(cfg, conn, clip) -> bool:
         if p["subtitles"]:
             log("   sous-titres… (le premier passage télécharge le modèle, 0,5 à 1,6 Go, une seule fois)")
             transcript, chunks = transcribe(src, whisper_model(cfg), p["language"])
+        words_en = []
+        if p["subtitles"] and p.get("sub_lang", "fr") in ("en", "both"):
+            from .media import translate_en
+            log("   traduction des sous-titres en anglais…")
+            words_en = translate_en(src, p["language"])
         start, end, cut_reason = clip_start, clip_end, "découpe du spectateur"
         if win:
             start, end, cut_reason = best_range(src, chunks, clip_start, clip_end,
@@ -94,7 +100,8 @@ def prepare(cfg, conn, clip) -> bool:
         cam_position = p.get("facecam_position", "top")
         render(src, out, clip["broadcaster_name"], chunks, facecam=facecam, zoom=p["zoom"],
                cam_position=cam_position, hook=hook, hook_seconds=p.get("hook_seconds", 2.5),
-               burned_band=band, start=start, end=end, sub_style=p.get("sub_style"), zoom_at=zoom_at)
+               burned_band=band, start=start, end=end, sub_style=p.get("sub_style"), zoom_at=zoom_at,
+               extras=make_extras(cfg, chunks, words_en, src, start, end))
         out.with_suffix(".txt").write_text(caption, encoding="utf-8")
         # On garde la vidéo d'origine quelques jours pour pouvoir ajuster et remonter le clip.
         kept = SOURCES / f"{clip['id']}{src.suffix}"
@@ -104,8 +111,17 @@ def prepare(cfg, conn, clip) -> bool:
                        source_path=str(kept), chunks=json.dumps(chunks), cam_position=cam_position,
                        facecam=json.dumps(facecam) if facecam else None, hook=hook,
                        burned_band=json.dumps(band) if band else None, trim_start=start, trim_end=end,
-                       clip_start=clip_start, clip_end=clip_end, cut_reason=cut_reason, zoom_at=zoom_at, duration=float(clip.get("duration") or 0))
+                       clip_start=clip_start, clip_end=clip_end, cut_reason=cut_reason, zoom_at=zoom_at,
+                       words_en=json.dumps(words_en) if words_en else None,
+                       options=json.dumps(clip_defaults(cfg)), duration=float(clip.get("duration") or 0))
         log(f"🎬 monté : {out.name}")
+        # Clip long + option cochée : on le découpe aussi en plusieurs parties.
+        if p.get("auto_parts") and end - start >= p.get("part_seconds", 30) * 1.6:
+            try:
+                from .parts import split
+                log(f"   ✂️ {split(clip['id'], p.get('part_seconds', 30))}")
+            except Exception as e:
+                log(f"   découpe en parties impossible : {e}")
         return True
     except Exception as e:
         journal.insert(conn, clip, "error", error=f"{type(e).__name__}: {e}")
@@ -186,6 +202,17 @@ def run():
             send_ready(cfg, conn)
         elif made:
             notify("Grand Clip Auto", f"{made} vidéo(s) prête(s) à poster.")
+        # Top du jour coché : on le crée (ou on le refait avec les nouveaux clips) à ce passage.
+        if cfg["pipeline"].get("auto_top"):
+            day = datetime.now().strftime("%Y-%m-%d")
+            top = conn.execute("SELECT status FROM clips WHERE id = ?", (f"top-{day}",)).fetchone()
+            # Déjà publié ou écarté : on n'y touche plus.
+            if (made or not top) and not (top and top["status"] in ("posted", "sent", "discarded")):
+                try:
+                    from .compile import build
+                    log(f"🏆 {build(day)}")
+                except RuntimeError as e:
+                    log(f"   Top du jour : {e}")
         log("✔ terminé")
     except SystemExit as e:  # erreurs de réglage (clés manquantes…) : message lisible
         log(f"❌ {e}")

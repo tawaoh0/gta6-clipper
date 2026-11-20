@@ -1,7 +1,7 @@
 ; Installateur Windows (Inno Setup 6) : iscc packaging\windows.iss
 #define AppName "Grand Clip Auto"
 #ifndef AppVersion
-  #define AppVersion "0.6.0"
+  #define AppVersion "0.9.1"
 #endif
 
 [Setup]

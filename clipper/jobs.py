@@ -93,12 +93,29 @@ def _rerender(clip_id: str, opts: dict) -> str:
         from .hooks import _peak
         zoom_at = _peak(src, start, end)
 
+    # Options de ce clip (emojis, bruitages, filigrane, langue) : celles demandées, sinon celles
+    # avec lesquelles il a été monté, sinon les réglages.
+    from . import options as clip_options
+    chosen = {**clip_options.defaults(cfg), **(json.loads(r["options"]) if r["options"] else {}),
+              **{k: v for k, v in (opts.get("options") or {}).items() if k in clip_options.CLIP_OPTIONS}}
+    cfg = clip_options.apply(cfg, chosen)
+    journal.update(conn, clip_id, options=json.dumps(chosen))
+
+    words = json.loads(r["chunks"] or "[]")
+    words_en = json.loads(r["words_en"]) if r["words_en"] else []
+    if cfg["pipeline"].get("sub_lang", "fr") in ("en", "both") and not words_en and words:
+        from .media import translate_en
+        words_en = translate_en(src, cfg["pipeline"]["language"])
+        journal.update(conn, clip_id, words_en=json.dumps(words_en))
+    from .options import make_extras
+    extras = make_extras(cfg, words, words_en, src, start, end)
+
     out = Path(r["video_path"])
     tmp = out.with_name(out.stem + ".new.mp4")
     render(src, tmp, r["streamer"], json.loads(r["chunks"] or "[]"), facecam=facecam,
            zoom=cfg["pipeline"]["zoom"], cam_position=cam_position, start=start, end=end,
            hook=hook, hook_seconds=cfg["pipeline"].get("hook_seconds", 2.5), burned_band=band,
-           sub_style=cfg["pipeline"].get("sub_style"), zoom_at=zoom_at)
+           sub_style=cfg["pipeline"].get("sub_style"), zoom_at=zoom_at, extras=extras)
     tmp.replace(out)
     (THUMBS / f"{clip_id}.jpg").unlink(missing_ok=True)
     # La légende commence par l'accroche : si elle n'a pas été réécrite à la main, on la met à jour.
@@ -162,6 +179,44 @@ def tiktok_send(clip_id: str) -> bool:
         journal.update(conn, clip_id, status="sent", publish_id=pid, sent_at=time.time())
         return "Brouillon envoyé : ouvre l'app TikTok, onglet Boîte de réception"
     return _start(f"tiktok:{clip_id}", go)
+
+
+# ---------- plusieurs parties ----------
+
+def make_parts(clip_id: str, seconds: float) -> bool:
+    from .parts import split
+    return _start(f"parts:{clip_id}", split, clip_id, seconds)
+
+
+# ---------- Top du jour ----------
+
+def make_top(day: str | None = None) -> bool:
+    from .compile import build
+    return _start("top", build, day)
+
+
+# ---------- YouTube ----------
+
+def youtube_login() -> bool:
+    def go():
+        from .youtube import channel_name, login
+        login(load_config())
+        name = channel_name()
+        return f"Chaîne YouTube connectée{f' : {name}' if name else ''}"
+    return _start("youtube:login", go)
+
+
+def youtube_send(clip_id: str, text: str, privacy: str | None) -> bool:
+    def go():
+        from .youtube import upload
+        conn = journal.connect()
+        r = conn.execute("SELECT * FROM clips WHERE id = ?", (clip_id,)).fetchone()
+        if not r or not r["video_path"] or not Path(r["video_path"]).exists():
+            raise RuntimeError("La vidéo n'existe plus.")
+        vid = upload(load_config(), Path(r["video_path"]), text, privacy)
+        journal.update(conn, clip_id, youtube_id=vid)
+        return vid
+    return _start(f"youtube:{clip_id}", go)
 
 
 # ---------- mises à jour ----------

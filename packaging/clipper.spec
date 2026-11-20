@@ -14,11 +14,14 @@ VERSION = re.search(r'__version__ = "([^"]+)"', (ROOT / "clipper" / "__init__.py
 datas = [
     (str(ROOT / "ui"), "ui"),
     (str(ROOT / "assets" / "fonts"), "assets/fonts"),
+    (str(ROOT / "assets" / "emoji"), "assets/emoji"),
+    (str(ROOT / "assets" / "sfx"), "assets/sfx"),
     (str(ROOT / "models"), "models"),
 ]
 binaries, hidden = [], ["clipper.web", "clipper.pipeline", "clipper.twitch", "clipper.media",
                         "clipper.facecam", "clipper.caption", "clipper.db", "clipper.tiktok",
-                        "clipper.jobs", "clipper.burned_subs", "clipper.moment", "clipper.hooks", "clipper.analysis", "clipper.storage"]
+                        "clipper.jobs", "clipper.burned_subs", "clipper.moment", "clipper.hooks", "clipper.analysis", "clipper.storage", "clipper.youtube",
+                        "clipper.effects", "clipper.options", "clipper.compile", "clipper.parts"]
 for pkg in ("faster_whisper", "ctranslate2", "imageio_ffmpeg", "webview", "desktop_notifier", "yt_dlp", "av"):
     d, b, h = collect_all(pkg)
     datas += d

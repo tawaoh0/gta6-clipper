@@ -31,7 +31,8 @@ NOISE = ("objc[", "Class AVF", "MPS backend", "One of the duplicates")
 EXTERNAL = ("https://dev.twitch.tv/", "https://www.twitch.tv/", "https://twitch.tv/",
             "https://clips.twitch.tv/", "https://console.anthropic.com/", "https://www.tiktok.com/",
             "https://developers.tiktok.com/", "https://github.com/", "https://studio.youtube.com/",
-            "https://www.instagram.com/")
+            "https://www.instagram.com/", "https://console.cloud.google.com/", "https://www.youtube.com/",
+            "https://youtube.com/")
 
 
 # ---------- état ----------
@@ -124,6 +125,7 @@ def state() -> dict:
         "version": __version__,
         "update": jobs.UPDATE if jobs.UPDATE.get("latest") else None,
         "jobs": jobs.snapshot(),
+        "youtube": _youtube_state(cfg),
         "tiktok": {"connected": jobs.tiktok_connected(),
                    "has_keys": bool(cfg["tiktok"]["client_key"] and cfg["tiktok"]["client_secret"]),
                    "redirect": f"http://localhost:{cfg['tiktok']['redirect_port']}/callback/"},
@@ -148,6 +150,19 @@ def state() -> dict:
             "sub_quality": p.get("sub_quality", "precise"),
             "sub_style": {**SUB_STYLE, **(p.get("sub_style") or {})},
             "reaction_zoom": p.get("reaction_zoom", True),
+            "sub_lang": p.get("sub_lang", "fr"),
+            "emojis": p.get("emojis", False),
+            "sfx": p.get("sfx", False),
+            "sfx_volume": p.get("sfx_volume", 1.0),
+            "watermark": {"on": False, "text": "", "logo": "", "corner": "tr", "opacity": 0.75, **(p.get("watermark") or {})},
+            "top_clips": p.get("top_clips", 5),
+            "top_seconds": p.get("top_seconds", 11),
+            "auto_top": p.get("auto_top", False),
+            "auto_parts": p.get("auto_parts", False),
+            "part_seconds": p.get("part_seconds", 30),
+            "youtube_client_id": cfg["youtube"]["client_id"],
+            "youtube_secret_set": bool(cfg["youtube"]["client_secret"]),
+            "youtube_privacy": cfg["youtube"].get("privacy", "private"),
             "tiktok_client_key": cfg["tiktok"]["client_key"],
             "tiktok_secret_set": bool(cfg["tiktok"]["client_secret"]),
         },
@@ -178,10 +193,23 @@ SETTINGS = {  # champ de l'interface -> (section, clé, type)
     "sub_quality": ("pipeline", "sub_quality", str),
     "sub_style": ("pipeline", "sub_style", dict),
     "reaction_zoom": ("pipeline", "reaction_zoom", bool),
+    "sub_lang": ("pipeline", "sub_lang", str),
+    "emojis": ("pipeline", "emojis", bool),
+    "sfx": ("pipeline", "sfx", bool),
+    "sfx_volume": ("pipeline", "sfx_volume", float),
+    "watermark": ("pipeline", "watermark", "watermark"),
+    "top_clips": ("pipeline", "top_clips", int),
+    "top_seconds": ("pipeline", "top_seconds", int),
+    "auto_top": ("pipeline", "auto_top", bool),
+    "auto_parts": ("pipeline", "auto_parts", bool),
+    "part_seconds": ("pipeline", "part_seconds", int),
+    "youtube_client_id": ("youtube", "client_id", str),
+    "youtube_client_secret": ("youtube", "client_secret", str),
+    "youtube_privacy": ("youtube", "privacy", str),
     "tiktok_client_key": ("tiktok", "client_key", str),
     "tiktok_client_secret": ("tiktok", "client_secret", str),
 }
-SECRETS = ("twitch_client_secret", "claude_api_key", "tiktok_client_secret")
+SECRETS = ("twitch_client_secret", "claude_api_key", "tiktok_client_secret", "youtube_client_secret")
 
 
 def save_settings(data: dict):
@@ -200,10 +228,28 @@ def save_settings(data: dict):
             value = bool(value)
         elif kind is dict:
             value = clean_style(value)
+        elif kind == "watermark":
+            v = value if isinstance(value, dict) else {}
+            value = {"on": bool(v.get("on")), "text": str(v.get("text", ""))[:40],
+                     "logo": str(v.get("logo", "")) if v.get("logo") and Path(str(v["logo"])).exists() else "",
+                     "corner": v.get("corner") if v.get("corner") in ("tl", "tr", "bl", "br") else "tr",
+                     "opacity": min(max(float(v.get("opacity", 0.75)), 0.15), 1.0)}
+        elif kind is float:
+            value = min(max(float(value), 0.0), 2.0)
         elif kind is int:
             value = max(0, int(value))
+            if field == "top_clips":
+                value = min(max(value, 2), 10)
+            if field == "part_seconds":
+                value = min(max(value, 10), 60)
+            if field == "top_seconds":
+                value = min(max(value, 5), 20)
         else:
             value = str(value).strip()
+            if field == "sub_lang" and value not in ("fr", "en", "both"):
+                continue
+            if field == "youtube_privacy" and value not in ("private", "unlisted", "public"):
+                continue
             if field == "sub_quality" and value not in ("precise", "fast"):
                 continue
             if field == "facecam" and value not in ("auto", "off"):
@@ -222,6 +268,12 @@ def save_settings(data: dict):
                 value = str(folder)
         cfg[section][key] = value
     save_config(cfg)
+
+
+def _youtube_state(cfg) -> dict:
+    from . import youtube
+    return {"connected": youtube.connected(), "channel": youtube.channel_name(),
+            "has_keys": bool(cfg["youtube"]["client_id"] and cfg["youtube"]["client_secret"])}
 
 
 def clean_style(v: dict) -> dict:
@@ -322,6 +374,23 @@ def pick_folder() -> str | None:
     kind = getattr(getattr(webview, "FileDialog", None), "FOLDER", None) or webview.FOLDER_DIALOG
     res = WINDOW.create_file_dialog(kind, directory=str(output_dir(load_config())))
     return res[0] if res else None
+
+
+def pick_logo() -> str | None:
+    """Choisir une image de logo (dans l'app) ; on la copie dans le dossier de l'app."""
+    if WINDOW is None:
+        return None
+    import shutil
+    import webview
+
+    kind = getattr(getattr(webview, "FileDialog", None), "OPEN", None) or webview.OPEN_DIALOG
+    res = WINDOW.create_file_dialog(kind, file_types=("Images (*.png;*.jpg;*.jpeg;*.webp)",))
+    if not res:
+        return None
+    src = Path(res[0])
+    dest = DATA / f"logo{src.suffix.lower()}"
+    shutil.copy2(src, dest)
+    return str(dest)
 
 
 def open_url(url: str) -> bool:
@@ -451,8 +520,18 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/clean":
                 from .storage import clean
                 return self._json(clean(None, everything_done=True))
+            if path == "/api/top":
+                return self._json({"started": jobs.make_top(data.get("day"))})
+            if path == "/api/pick-logo":
+                return self._json({"path": pick_logo()})
             if path == "/api/pick-folder":
                 return self._json({"path": pick_folder()})
+            if path == "/api/youtube/login":
+                return self._json({"started": jobs.youtube_login()})
+            if path == "/api/youtube/logout":
+                from .youtube import logout
+                logout()
+                return self._json({"ok": True})
             if path == "/api/tiktok/login":
                 return self._json({"started": jobs.tiktok_login()})
             if path == "/api/tiktok/logout":
@@ -464,7 +543,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"update": jobs.UPDATE if jobs.UPDATE.get("latest") else None})
             if path == "/api/open-url":
                 return self._json({"ok": open_url(str(data.get("url", "")))})
-            m = re.match(r"^/api/clip/([^/]+)/(posted|discard|restore|caption|reveal|rerender|tiktok|hooks)$", path)
+            m = re.match(r"^/api/clip/([^/]+)/(posted|discard|restore|caption|reveal|rerender|tiktok|hooks|youtube|parts)$", path)
             if m:
                 cid, action = m.groups()
                 r = self._clip(cid)
@@ -475,6 +554,12 @@ class Handler(BaseHTTPRequestHandler):
                     return self._json({"ideas": jobs.hook_ideas(cid, data.get("start"), data.get("end"))})
                 if action == "rerender":
                     return self._json({"started": jobs.rerender(cid, data)})
+                if action == "parts":
+                    secs = min(max(float(data.get("seconds") or 30), 10), 60)
+                    return self._json({"started": jobs.make_parts(cid, secs)})
+                if action == "youtube":
+                    privacy = data.get("privacy") if data.get("privacy") in ("private", "unlisted", "public") else None
+                    return self._json({"started": jobs.youtube_send(cid, str(data.get("text", ""))[:5000], privacy)})
                 if action == "tiktok":
                     return self._json({"started": jobs.tiktok_send(cid)})
                 if action == "reveal":
