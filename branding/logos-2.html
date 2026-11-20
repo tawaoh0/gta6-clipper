@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logos Grand Clip Auto · série 2</title>
+<style>
+@font-face { font-family: "Anton"; src: url(../site/assets/fonts/Anton-Regular.ttf) format("truetype"); }
+@font-face { font-family: "Manrope"; src: url(../site/assets/fonts/Manrope.ttf) format("truetype"); font-weight: 200 800; }
+@font-face { font-family: "JetBrains Mono"; src: url(../site/assets/fonts/JetBrainsMono.ttf) format("truetype"); font-weight: 100 800; }
+:root { --night: #0a0811; --panel: #15101f; --muted: #a89dbf; --sun: linear-gradient(100deg, #ff2e88, #ff7a45 60%, #ffc35a); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--night); color: #f4eff9; font-family: "Manrope", system-ui, sans-serif; padding: 56px 16px 80px; }
+.wrap { max-width: 1240px; margin: 0 auto; }
+header h1 { font: 400 clamp(44px, 6vw, 76px)/1 "Anton", Impact, sans-serif; text-transform: uppercase; }
+header p { color: var(--muted); margin-top: 12px; font-size: 17px; max-width: 680px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(370px, 1fr)); gap: 18px; margin-top: 44px; }
+.card { background: var(--panel); border: 1px solid #221b34; border-radius: 26px; overflow: hidden; display: flex; flex-direction: column; }
+.hero { height: 290px; display: grid; place-items: center; position: relative; overflow: hidden;
+  background: radial-gradient(60% 70% at 50% 100%, rgba(255, 46, 136, .25), transparent 70%), radial-gradient(50% 50% at 50% 40%, rgba(155, 92, 255, .12), transparent 70%), #0c0913; }
+.hero::before { content: ""; position: absolute; left: -50%; right: -50%; bottom: 0; height: 40%; opacity: .35;
+  background-image: linear-gradient(rgba(255, 46, 136, .5) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 46, 136, .35) 1px, transparent 1px);
+  background-size: 44px 26px; transform: perspective(200px) rotateX(60deg); transform-origin: bottom; -webkit-mask: linear-gradient(transparent, #000); mask: linear-gradient(transparent, #000); }
+.big { width: 176px; height: 176px; position: relative; filter: drop-shadow(0 26px 34px rgba(0,0,0,.7)); transition: transform .5s cubic-bezier(.2,.8,.2,1); }
+.card:hover .big { transform: translateY(-8px) rotate(-3deg) scale(1.05); }
+.big svg, .tile svg, .mark { display: block; width: 100%; height: 100%; }
+.sizes { position: absolute; right: 16px; bottom: 16px; display: flex; gap: 10px; align-items: flex-end; z-index: 2; }
+.tile { border-radius: 24%; background: linear-gradient(160deg, #221835, #120d1c); box-shadow: 0 0 0 1px #3a2f52; padding: 6%; }
+.t48 { width: 48px; height: 48px; } .t32 { width: 32px; height: 32px; } .t20 { width: 20px; height: 20px; padding: 2px; }
+.lock { padding: 22px; display: flex; align-items: center; gap: 14px; border-top: 1px solid #221b34; min-height: 92px; }
+.lock .mark { width: 50px; height: 50px; flex: none; }
+.lock.light { background: #f6f1ec; color: #140f1d; }
+.word { font: 400 27px/1 "Anton", Impact, sans-serif; text-transform: uppercase; white-space: nowrap; letter-spacing: .01em; }
+.grad { background: var(--sun); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* Styles de nom propres à chaque piste */
+.w-neon .c { color: #fff; text-shadow: 0 0 6px #ff2e88, 0 0 16px #ff2e88, 0 0 30px rgba(255, 46, 136, .7); }
+.light .w-neon .c { color: #e0156f; text-shadow: none; }
+.w-outline { letter-spacing: .04em; }
+.w-outline .o { color: transparent; -webkit-text-stroke: 1.8px #ff5a7d; filter: drop-shadow(0 0 6px rgba(255, 46, 136, .6)); }
+.light .w-outline .o { -webkit-text-stroke-color: #e0156f; }
+.w-badge { display: grid; gap: 6px; }
+.w-badge i { display: block; height: 2px; border-radius: 2px; background: var(--sun); }
+.w-badge small { font: 700 11px "JetBrains Mono", monospace; letter-spacing: .62em; opacity: .7; }
+.w-lens { font: 800 26px/1 "Manrope", sans-serif; text-transform: none; letter-spacing: -.035em; }
+.w-lens b { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--sun); margin: 0 3px 2px; vertical-align: middle; }
+.w-facet span { display: inline-block; transform: skewX(-8deg); }
+.w-chrome { font-style: normal; transform: skewX(-10deg); display: inline-block; letter-spacing: .02em;
+  background: linear-gradient(#ffffff 0%, #e8defd 40%, #5b3e8f 50%, #ff2e88 64%, #ff7a45 80%, #ffd58c 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 1.5px 0 #1a0f2a); }
+.light .w-chrome { background: linear-gradient(#4a3670 0%, #7a5cb0 42%, #1a0f2a 50%, #e0156f 64%, #ef5a1e 82%, #e88a00 100%); -webkit-background-clip: text; background-clip: text; filter: none; }
+
+.meta { padding: 20px 22px 24px; border-top: 1px solid #221b34; flex: 1; }
+.meta h2 { font: 400 26px "Anton", sans-serif; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
+.meta h2 b { font: 700 12px "JetBrains Mono", monospace; color: #1a0710; background: var(--sun); border-radius: 6px; padding: 4px 8px; }
+.meta p { color: var(--muted); font-size: 15px; margin-top: 8px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Dégradés communs -->
+    <linearGradient id="sunV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd27a"/><stop offset=".45" stop-color="#ff7a45"/><stop offset="1" stop-color="#ff2e88"/></linearGradient>
+    <linearGradient id="sunH" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#ff2e88"/><stop offset=".6" stop-color="#ff7a45"/><stop offset="1" stop-color="#ffc35a"/></linearGradient>
+    <linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".42" stop-color="#d9cdf5"/><stop offset=".5" stop-color="#6a4f9c"/><stop offset=".58" stop-color="#cbbcf0"/><stop offset="1" stop-color="#ffffff"/></linearGradient>
+    <linearGradient id="chromeWarm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".4" stop-color="#eadfff"/><stop offset=".5" stop-color="#5b3e8f"/><stop offset=".62" stop-color="#ff2e88"/><stop offset=".8" stop-color="#ff7a45"/><stop offset="1" stop-color="#ffd58c"/></linearGradient>
+    <linearGradient id="night" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1748"/><stop offset=".55" stop-color="#5a1c4e"/><stop offset="1" stop-color="#14091f"/></linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4a4062"/><stop offset=".5" stop-color="#191325"/><stop offset="1" stop-color="#3a3150"/></linearGradient>
+    <radialGradient id="gloss" cx="30%" cy="20%" r="70%"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="glowBig" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="2.5" stdDeviation="2" flood-color="#000" flood-opacity=".55"/></filter>
+
+    <clipPath id="fScreen"><rect x="25" y="7" width="50" height="86" rx="13"/></clipPath>
+    <mask id="fStripes" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100"><rect width="100" height="100" fill="#fff"/>
+      <rect y="47" width="100" height="1.6" fill="#000"/><rect y="51" width="100" height="2" fill="#000"/><rect y="55.5" width="100" height="2.4" fill="#000"/></mask>
+    <mask id="hStripes" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100"><rect width="100" height="100" fill="#fff"/>
+      <rect y="70" width="100" height="2" fill="#000"/><rect y="75" width="100" height="2.6" fill="#000"/><rect y="80.5" width="100" height="3.2" fill="#000"/></mask>
+    <mask id="kStripes" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100"><rect width="100" height="100" fill="#fff"/>
+      <rect y="58" width="100" height="3" fill="#000"/><rect y="65" width="100" height="3.6" fill="#000"/><rect y="72.5" width="100" height="4.2" fill="#000"/><rect y="80.5" width="100" height="5" fill="#000"/></mask>
+    <clipPath id="hShield"><path d="M50 14 79 24v24c0 19-12 32-29 39-17-7-29-20-29-39V24z"/></clipPath>
+    <clipPath id="iLens"><circle cx="50" cy="50" r="33"/></clipPath>
+  </defs>
+
+  <!-- F · Néon Drive : écran vertical, route qui file vers le soleil -->
+  <symbol id="F" viewBox="0 0 100 100">
+    <g clip-path="url(#fScreen)">
+      <rect x="25" y="7" width="50" height="86" fill="url(#night)"/>
+      <g fill="#fff" opacity=".8"><circle cx="34" cy="16" r=".7"/><circle cx="62" cy="13" r=".9"/><circle cx="68" cy="24" r=".6"/><circle cx="40" cy="27" r=".5"/></g>
+      <circle cx="50" cy="52" r="17" fill="url(#sunV)" mask="url(#fStripes)" filter="url(#glow)"/>
+      <path d="M25 58h50v35H25z" fill="#0f0819"/>
+      <path d="M25 58h50" stroke="#ff4fa0" stroke-width="1.2" filter="url(#glow)"/>
+      <g stroke="#ff2e88" stroke-width=".8" opacity=".75">
+        <path d="M50 58 20 93M50 58 34 93M50 58 66 93M50 58 80 93"/>
+        <path d="M25 62h50M25 67.5h50M25 75h50M25 85h50"/>
+      </g>
+      <path d="M47.5 58h5L62 93H38z" fill="#1a1026"/>
+      <path d="M50 60v4M50 68v6M50 79v9" stroke="#ffd27a" stroke-width="1.6" stroke-linecap="round"/>
+      <rect x="25" y="7" width="50" height="86" fill="url(#gloss)"/>
+    </g>
+    <rect x="25" y="7" width="50" height="86" rx="13" fill="none" stroke="url(#chrome)" stroke-width="3.6"/>
+    <rect x="42" y="11" width="16" height="3.6" rx="1.8" fill="#0a0612"/>
+    <path d="M44.5 23.5 57.5 31 44.5 38.5z" fill="#fff" stroke="#fff" stroke-width="2.2" stroke-linejoin="round" filter="url(#glow)"/>
+  </symbol>
+
+  <!-- G · Clap néon : clap de cinéma, éclair « auto » -->
+  <symbol id="G" viewBox="0 0 100 100">
+    <g transform="rotate(-16 20 40)">
+      <rect x="18" y="26" width="66" height="13" rx="3" fill="#1a1228" stroke="url(#sunH)" stroke-width="2.4" filter="url(#glow)"/>
+      <g fill="url(#sunH)"><path d="M26 27.5h8l-6 10h-8zM42 27.5h8l-6 10h-8zM58 27.5h8l-6 10h-8zM74 27.5h8.5l-6 10h-8z"/></g>
+    </g>
+    <circle cx="21" cy="41" r="3.2" fill="url(#chrome)"/>
+    <rect x="16" y="42" width="68" height="46" rx="8" fill="#170f24" stroke="url(#sunH)" stroke-width="2.8" filter="url(#glow)"/>
+    <g fill="url(#sunH)" opacity=".95"><path d="M21 46h9l-5 7h-8.5zM37 46h9l-5 7h-9zM53 46h9l-5 7h-9zM69 46h10.5l-5 7h-9z"/></g>
+    <path d="M54 56 40 72h9l-4 13 15-17h-9l3-12z" fill="#fff" stroke="#fff" stroke-width="1.4" stroke-linejoin="round" filter="url(#glowBig)"/>
+    <rect x="16" y="42" width="68" height="46" rx="8" fill="url(#gloss)"/>
+  </symbol>
+
+  <!-- H · Écusson : emblème de marque auto, monogramme + soleil -->
+  <symbol id="H" viewBox="0 0 100 100">
+    <path d="M50 5 87 18v30c0 25-15 41-37 49C28 89 13 73 13 48V18z" fill="url(#chrome)" filter="url(#soft)"/>
+    <path d="M50 9.5 83 21v27c0 22.5-13.5 37-33 44.5C30.5 85 17 70.5 17 48V21z" fill="#1b1230"/>
+    <g clip-path="url(#hShield)">
+      <rect x="0" y="0" width="100" height="100" fill="url(#night)"/>
+      <circle cx="50" cy="80" r="23" fill="url(#sunV)" mask="url(#hStripes)"/>
+      <path d="M0 86h100v20H0z" fill="#110a1c"/>
+      <path d="M21 86h58" stroke="#ff4fa0" stroke-width="1" filter="url(#glow)"/>
+      <rect x="0" y="0" width="100" height="100" fill="url(#gloss)"/>
+    </g>
+    <path d="M50 14 79 24v24c0 19-12 32-29 39-17-7-29-20-29-39V24z" fill="none" stroke="#ff7a45" stroke-width="1" opacity=".7"/>
+    <text x="50" y="52" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="25" letter-spacing="1" fill="url(#chrome)" filter="url(#soft)">GCA</text>
+    <path d="M32 58h36" stroke="url(#sunH)" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M44 22l1.2 2.5 2.8.4-2 2 .5 2.8-2.5-1.3-2.5 1.3.5-2.8-2-2 2.8-.4zM56 22l1.2 2.5 2.8.4-2 2 .5 2.8-2.5-1.3-2.5 1.3.5-2.8-2-2 2.8-.4z" fill="#ffc35a"/>
+  </symbol>
+
+  <!-- I · Objectif : diaphragme de caméra, lecture au centre -->
+  <symbol id="I" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="45" fill="url(#metal)" filter="url(#soft)"/>
+    <circle cx="50" cy="50" r="45" fill="none" stroke="url(#chrome)" stroke-width="2"/>
+    <circle cx="50" cy="50" r="38.5" fill="#0d0916"/>
+    <circle cx="50" cy="50" r="36" fill="none" stroke="url(#sunH)" stroke-width="2.4" filter="url(#glow)"/>
+    <g clip-path="url(#iLens)" id="blades"></g>
+    <circle cx="50" cy="50" r="12.5" fill="#0b0712"/>
+    <path d="M46 43.5 57 50 46 56.5z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round" filter="url(#glow)"/>
+    <path d="M27 33a28 28 0 0 1 22-14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".45"/>
+    <circle cx="66" cy="70" r="2.2" fill="#fff" opacity=".35"/>
+    <g fill="#ffc35a"><circle cx="50" cy="8.5" r="1.3"/><circle cx="91.5" cy="50" r="1.3"/><circle cx="50" cy="91.5" r="1.3"/><circle cx="8.5" cy="50" r="1.3"/></g>
+  </symbol>
+
+  <!-- J · Facette : bouton lecture taillé comme un bijou -->
+  <symbol id="J" viewBox="0 0 100 100">
+    <g filter="url(#glowBig)" opacity=".55"><path d="M30 18 30 82 84 50z" fill="#ff2e88"/></g>
+    <g stroke="#2a0f22" stroke-width=".6" stroke-linejoin="round">
+      <path d="M30 18 30 50 48 50z" fill="#ffd27a"/>
+      <path d="M30 50 30 82 48 50z" fill="#ff8a4a"/>
+      <path d="M30 82 57 66 48 50z" fill="#ff5468"/>
+      <path d="M57 66 84 50 48 50z" fill="#ff2e88"/>
+      <path d="M84 50 57 34 48 50z" fill="#ff6a5c"/>
+      <path d="M57 34 30 18 48 50z" fill="#ffb052"/>
+    </g>
+    <path d="M30 18 30 82 84 50z" fill="none" stroke="url(#chrome)" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M33 24 33 44 45 47z" fill="#fff" opacity=".45"/>
+    <g fill="#fff"><path d="M78 20l1.3 3.7 3.7 1.3-3.7 1.3L78 30l-1.3-3.7-3.7-1.3 3.7-1.3z"/><path d="M20 76l.9 2.4 2.4.9-2.4.9-.9 2.4-.9-2.4-2.4-.9 2.4-.9z" opacity=".7"/></g>
+  </symbol>
+
+  <!-- K · Chrome rétro : grand C chromé devant le soleil -->
+  <symbol id="K" viewBox="0 0 100 100">
+    <circle cx="50" cy="56" r="36" fill="url(#sunV)" mask="url(#kStripes)" opacity=".95"/>
+    <path d="M8 88h84" stroke="#ff4fa0" stroke-width="1.4" filter="url(#glow)"/>
+    <g transform="skewX(-10) translate(9 0)">
+      <text x="50" y="80" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="78" fill="#1a0f2a" transform="translate(0 2.5)">C</text>
+      <text x="50" y="80" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="78" fill="url(#chromeWarm)" stroke="#fff" stroke-width=".6" stroke-opacity=".6">C</text>
+    </g>
+    <path d="M70 24l1.4 4 4 1.4-4 1.4-1.4 4-1.4-4-4-1.4 4-1.4z" fill="#fff"/>
+  </symbol>
+</svg>
+
+<div class="wrap">
+  <header>
+    <h1>Logo <span class="grad">· série 2</span></h1>
+    <p>Six pistes plus riches : reflets chromés, néons, profondeur. Chacune montrée en grand, en petites tailles et avec le nom, sur fond sombre et clair.</p>
+  </header>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+// Lames du diaphragme (piste I)
+(() => {
+  const g = document.getElementById("blades"), cx = 50, cy = 50, rIn = 12.5, rOut = 40;
+  const cols = ["#ffd27a", "#ffb052", "#ff7a45", "#ff5468", "#ff2e88", "#ff8a4a"];
+  const P = (r, a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  let html = "";
+  for (let i = 0; i < 6; i++) {
+    const a = (i * 60 - 90) * Math.PI / 180, b = a + Math.PI / 3, tw = 38 * Math.PI / 180;
+    const p = [P(rIn, a), P(rIn, b), P(rOut, b + tw), P(rOut, a + tw)].map(q => q.map(v => v.toFixed(2)).join(" "));
+    html += `<path d="M${p[0]}L${p[1]}L${p[2]}L${p[3]}Z" fill="${cols[i]}" stroke="#1a0b1c" stroke-width=".8" stroke-linejoin="round"/>`;
+  }
+  g.innerHTML = html + `<circle cx="50" cy="50" r="40" fill="url(#gloss)"/>`;
+})();
+
+const pistes = [
+  { id: "F", name: "Néon Drive", desc: "Un écran vertical cadré de chrome. Dedans, une route file vers le soleil rayé, sous un bouton lecture lumineux. L'univers « nuit + vitesse », dans un format vertical.",
+    word: `<span class="w-neon">GRAND <span class="c">CLIP</span> AUTO</span>` },
+  { id: "G", name: "Clap néon", desc: "Un clap de cinéma en néon, avec un éclair au centre : le montage qui part tout seul. Très lisible et très « vidéo ».",
+    word: `<span class="w-outline">GRAND <span class="o">CLIP</span> AUTO</span>` },
+  { id: "H", name: "Écusson", desc: "Un blason chromé comme ceux des marques de voitures, qui joue sur le « Auto » du nom. Monogramme GCA et soleil couchant à l'intérieur.",
+    word: `<span class="w-badge"><span>GRAND CLIP</span><i></i><small>AUTO</small></span>` },
+  { id: "I", name: "Objectif", desc: "Un objectif de caméra dont les lames du diaphragme prennent les couleurs du coucher de soleil, avec le bouton lecture au centre. Haut de gamme, façon matériel photo.",
+    word: `<span class="w-lens">Grand<b></b>Clip<b></b>Auto</span>` },
+  { id: "J", name: "Facette", desc: "Le bouton lecture taillé en facettes, comme une pierre précieuse, avec un liseré chromé. Simple de loin, riche de près.",
+    word: `<span class="w-facet"><span>GRAND</span> <span class="grad">CLIP</span> <span>AUTO</span></span>` },
+  { id: "K", name: "Chrome rétro", desc: "Un grand C chromé et penché devant le soleil rayé, façon pochette des années 80. Le nom reprend le même effet chrome.",
+    word: `<span class="w-chrome">GRAND CLIP AUTO</span>` },
+];
+const use = id => `<svg viewBox="0 0 100 100"><use href="#${id}"/></svg>`;
+document.getElementById("grid").innerHTML = pistes.map(p => `
+  <article class="card">
+    <div class="hero">
+      <div class="big">${use(p.id)}</div>
+      <div class="sizes"><span class="tile t48">${use(p.id)}</span><span class="tile t32">${use(p.id)}</span><span class="tile t20">${use(p.id)}</span></div>
+    </div>
+    <div class="lock"><svg class="mark" viewBox="0 0 100 100"><use href="#${p.id}"/></svg><span class="word">${p.word}</span></div>
+    <div class="lock light"><svg class="mark" viewBox="0 0 100 100"><use href="#${p.id}"/></svg><span class="word">${p.word}</span></div>
+    <div class="meta"><h2><b>${p.id}</b>${p.name}</h2><p>${p.desc}</p></div>
+  </article>`).join("");
+</script>
+</body>
+</html>

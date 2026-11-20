@@ -449,6 +449,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, UI.read_bytes(), "text/html; charset=utf-8")
             if path == "/api/state":
                 return self._json(state())
+            m = re.match(r"^/brand/(logo-(?:64|128|256)\.png)$", path)
+            if m and (RES / "ui" / "brand" / m.group(1)).exists():
+                return self._file(RES / "ui" / "brand" / m.group(1), "image/png")
             if path == "/sub-preview":
                 import io
                 from urllib.parse import parse_qs

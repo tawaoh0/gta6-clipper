@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logo Chrome rétro</title>
+<style>
+@font-face { font-family: "Anton"; src: url(../site/assets/fonts/Anton-Regular.ttf) format("truetype"); }
+@font-face { font-family: "Manrope"; src: url(../site/assets/fonts/Manrope.ttf) format("truetype"); font-weight: 200 800; }
+@font-face { font-family: "JetBrains Mono"; src: url(../site/assets/fonts/JetBrainsMono.ttf) format("truetype"); font-weight: 100 800; }
+:root { --night: #0a0811; --panel: #15101f; --muted: #a89dbf; --sun: linear-gradient(100deg, #ff2e88, #ff7a45 60%, #ffc35a); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--night); color: #f4eff9; font-family: "Manrope", system-ui, sans-serif; padding: 56px 16px 90px; }
+.wrap { max-width: 1240px; margin: 0 auto; }
+header h1 { font: 400 clamp(44px, 6vw, 76px)/1 "Anton", Impact, sans-serif; text-transform: uppercase; }
+header p, .sec p.lead { color: var(--muted); margin-top: 12px; font-size: 17px; max-width: 720px; line-height: 1.5; }
+.grad { background: var(--sun); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.sec { margin-top: 64px; }
+.sec h2 { font: 400 34px "Anton", sans-serif; text-transform: uppercase; }
+.row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 26px; }
+@media (max-width: 980px) { .row { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border: 1px solid #221b34; border-radius: 26px; overflow: hidden; }
+.stage { height: 330px; display: grid; place-items: center; position: relative; overflow: hidden;
+  background: radial-gradient(60% 70% at 50% 100%, rgba(255, 46, 136, .22), transparent 70%), #0c0913; }
+.stage .ic { width: 230px; height: 230px; filter: drop-shadow(0 30px 40px rgba(0,0,0,.75)); transition: transform .5s cubic-bezier(.2,.8,.2,1); }
+.card:hover .ic { transform: translateY(-8px) rotate(-2deg) scale(1.04); }
+.sizes { position: absolute; right: 16px; bottom: 16px; display: flex; gap: 10px; align-items: flex-end; }
+.sizes svg { display: block; }
+.meta { padding: 20px 22px 24px; border-top: 1px solid #221b34; }
+.meta h3 { font: 400 24px "Anton", sans-serif; text-transform: uppercase; display: flex; gap: 10px; align-items: center; }
+.meta h3 b { font: 700 12px "JetBrains Mono", monospace; color: #1a0710; background: var(--sun); border-radius: 6px; padding: 4px 8px; }
+.meta p { color: var(--muted); font-size: 15px; margin-top: 8px; line-height: 1.5; }
+
+.locks { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 26px; }
+@media (max-width: 980px) { .locks { grid-template-columns: 1fr; } }
+.lock { border-radius: 26px; padding: 44px 30px; display: grid; place-items: center; min-height: 260px; border: 1px solid #221b34; }
+.lock.dark { background: radial-gradient(70% 90% at 50% 120%, rgba(255, 46, 136, .25), transparent 70%), #0c0913; }
+.lock.light { background: #f6f1ec; }
+.lock svg { width: 100%; max-width: 520px; height: auto; display: block; }
+.lock .h { display: flex; align-items: center; gap: 18px; width: 100%; max-width: 560px; }
+.lock .h svg.i { width: 92px; flex: none; }
+
+.mocks { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; margin-top: 26px; }
+@media (max-width: 980px) { .mocks { grid-template-columns: 1fr; } }
+.dockbox { border-radius: 26px; overflow: hidden; height: 300px; position: relative; display: grid; align-items: end; justify-items: center; padding-bottom: 26px;
+  background: radial-gradient(60% 80% at 30% 20%, #6a2e7a, transparent 60%), radial-gradient(60% 80% at 80% 60%, #c2416a, transparent 60%), linear-gradient(#1b1433, #331a3e); }
+.dock { display: flex; gap: 12px; padding: 10px 14px; border-radius: 24px; background: rgba(255,255,255,.16); backdrop-filter: blur(20px); box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); align-items: end; }
+.dock .app { width: 62px; height: 62px; border-radius: 15px; }
+.dock .app.us { width: 80px; height: 80px; transform: translateY(-6px); position: relative; }
+.dock .app.us::after { content: ""; position: absolute; left: 50%; bottom: -12px; width: 5px; height: 5px; border-radius: 50%; background: #fff; transform: translateX(-50%); }
+.dock .app svg { width: 100%; height: 100%; display: block; }
+.tip { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); background: rgba(30,30,40,.85); color: #fff; font: 600 13px -apple-system, var(--body, sans-serif); padding: 5px 10px; border-radius: 7px; }
+.browser { border-radius: 26px; overflow: hidden; background: #f6f1ec; height: 300px; display: flex; flex-direction: column; }
+.tabs { background: #dcd5cf; padding: 10px 10px 0; display: flex; gap: 4px; }
+.tab { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 10px 10px 0 0; font: 600 13px -apple-system, sans-serif; color: #2a2430; background: #cfc7c0; }
+.tab.on { background: #fff; }
+.tab svg { width: 16px; height: 16px; }
+.url { background: #fff; padding: 10px 14px; font: 13px -apple-system, sans-serif; color: #6b6478; border-bottom: 1px solid #e8e2dc; }
+.pagebar { flex: 1; display: grid; place-items: center; background: #0a0811; }
+.pagebar .nav { width: 88%; display: flex; align-items: center; justify-content: space-between; }
+.pagebar .nav svg { height: 34px; width: auto; }
+.pagebar .nav span { font: 800 12px var(--body, sans-serif); background: var(--sun); color: #1a0710; padding: 8px 14px; border-radius: 99px; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Chrome 80s : ciel clair, ligne d'horizon sombre, sol chaud -->
+    <linearGradient id="chr" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".22" stop-color="#e4ebff"/><stop offset=".44" stop-color="#8d9cf0"/>
+      <stop offset=".5" stop-color="#1c1440"/><stop offset=".53" stop-color="#7a1d5c"/><stop offset=".62" stop-color="#ff2e88"/>
+      <stop offset=".82" stop-color="#ff9a4a"/><stop offset="1" stop-color="#ffe7b0"/>
+    </linearGradient>
+    <linearGradient id="chrDark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#cfd6f5"/><stop offset="1" stop-color="#7d86b5"/>
+    </linearGradient>
+    <linearGradient id="sunV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd27a"/><stop offset=".45" stop-color="#ff7a45"/><stop offset="1" stop-color="#ff2e88"/></linearGradient>
+    <linearGradient id="bgK" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#160c30"/><stop offset=".62" stop-color="#3b1250"/><stop offset=".62" stop-color="#0c0616"/><stop offset="1" stop-color="#120820"/></linearGradient>
+    <linearGradient id="ring" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#c9c2e8"/><stop offset=".5" stop-color="#4b3a78"/><stop offset=".56" stop-color="#d4c9f2"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <radialGradient id="sunGlow"><stop offset="0" stop-color="#ff5a7d" stop-opacity=".7"/><stop offset="1" stop-color="#ff5a7d" stop-opacity="0"/></radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="neon" x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <mask id="stripes" maskUnits="userSpaceOnUse" x="-50" y="-50" width="200" height="200"><rect x="-50" y="-50" width="200" height="200" fill="#fff"/>
+      <rect x="-50" y="52" width="200" height="2.2" fill="#000"/><rect x="-50" y="57.5" width="200" height="2.8" fill="#000"/><rect x="-50" y="63.5" width="200" height="3.4" fill="#000"/><rect x="-50" y="70" width="200" height="4" fill="#000"/><rect x="-50" y="77" width="200" height="4.6" fill="#000"/></mask>
+    <clipPath id="sq"><rect width="100" height="100" rx="22"/></clipPath>
+    <clipPath id="disc"><circle cx="50" cy="54" r="38"/></clipPath>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header>
+    <h1>Chrome rétro <span class="grad">· retravaillé</span></h1>
+    <p>Le C est maintenant dessiné à la main, carré et penché comme les lettres des années 80. Il a un vrai chrome (ciel clair, ligne d'horizon, reflet chaud), un relief néon en profondeur, un contour net et un éclat. Trois façons de le présenter :</p>
+  </header>
+
+  <section class="sec">
+    <h2>L'icône</h2>
+    <div class="row" id="icons"></div>
+  </section>
+
+  <section class="sec">
+    <h2>Le nom</h2>
+    <p class="lead">Le nom passe au même chrome, avec du relief. Deux mises en page : en ligne pour la barre du site, empilée pour les visuels et l'écran de démarrage de l'app.</p>
+    <div class="locks">
+      <div class="lock dark"><div class="h"><svg class="i" viewBox="0 0 100 100" data-icon="K1"></svg><svg viewBox="0 0 470 90" data-word="line"></svg></div></div>
+      <div class="lock light"><div class="h"><svg class="i" viewBox="0 0 100 100" data-icon="K1"></svg><svg viewBox="0 0 470 90" data-word="line"></svg></div></div>
+      <div class="lock dark"><svg viewBox="0 0 320 250" data-word="stack" style="max-width:360px"></svg></div>
+      <div class="lock light"><svg viewBox="0 0 320 250" data-word="stack" style="max-width:360px"></svg></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>En situation</h2>
+    <div class="mocks">
+      <div class="dockbox">
+        <span class="tip">Grand Clip Auto</span>
+        <div class="dock">
+          <div class="app" style="background:linear-gradient(#5ac8fa,#007aff)"></div>
+          <div class="app" style="background:linear-gradient(#ffd60a,#ff9f0a)"></div>
+          <div class="app" style="background:linear-gradient(#30d158,#248a3d)"></div>
+          <div class="app us"><svg viewBox="0 0 100 100" data-icon="K1"></svg></div>
+          <div class="app" style="background:linear-gradient(#bf5af2,#5e5ce6)"></div>
+          <div class="app" style="background:linear-gradient(#ff6482,#ff2d55)"></div>
+          <div class="app" style="background:linear-gradient(#8e8e93,#48484a)"></div>
+        </div>
+      </div>
+      <div class="browser">
+        <div class="tabs"><div class="tab on"><svg viewBox="0 0 100 100" data-icon="K1"></svg>Grand Clip Auto</div><div class="tab">Nouvel onglet</div></div>
+        <div class="url">grandclipauto.netlify.app</div>
+        <div class="pagebar"><div class="nav"><svg viewBox="0 0 560 100" data-word="nav"></svg><span>Obtenir l'app</span></div></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+// ---------- Briques ----------
+const C = "M68 16Q78 16 78 26L78 32L44 32Q38 32 38 38L38 62Q38 68 44 68L78 68L78 74Q78 84 68 84L44 84Q22 84 22 62L22 38Q22 16 44 16Z";
+const mix = (a, b, t) => "#" + [0, 2, 4].map(i => Math.round(parseInt(a.substr(i + 1, 2), 16) * (1 - t) + parseInt(b.substr(i + 1, 2), 16) * t).toString(16).padStart(2, "0")).join("");
+
+// Relief : couches décalées, du rose (près) au violet nuit (loin), puis la face chromée
+function chromeShape(shape, { depth = 7, dx = .9, dy = 1.1, stroke = 1.3, near = "#ff2e88", far = "#1e0b33", fill = "url(#chr)", bevel = true } = {}) {
+  let s = "";
+  for (let i = depth; i >= 1; i--) s += `<g transform="translate(${(dx * i).toFixed(2)} ${(dy * i).toFixed(2)})">${shape(mix(near, far, i / depth), "#120820", stroke)}</g>`;
+  s += shape(fill, "#120820", stroke);
+  if (bevel) s += `<g opacity=".75">${shape("none", "#ffffff", .5)}</g>`;
+  return s;
+}
+const cPath = (fill, st, sw) => `<path d="${C}" fill="${fill}" stroke="${st}" stroke-width="${sw}" stroke-linejoin="round" paint-order="stroke"/>`;
+const italic = (inner, cx = 50, cy = 50, sc = 1) => `<g transform="translate(${cx} ${cy}) scale(${sc}) translate(${(.2126 * 0).toFixed(1)} 0) skewX(-12) translate(${-cx} ${-cy})">${inner}</g>`;
+const sparkle = (x, y, r = 5) => `<g transform="translate(${x} ${y})" filter="url(#glow)"><path d="M0 ${-r}L${r * .22} ${-r * .22}L${r} 0L${r * .22} ${r * .22}L0 ${r}L${-r * .22} ${r * .22}L${-r} 0L${-r * .22} ${-r * .22}Z" fill="#fff"/><circle r="${r * .28}" fill="#fff"/></g>`;
+const sun = (cx, cy, r) => `<circle cx="${cx}" cy="${cy}" r="${r * 1.5}" fill="url(#sunGlow)"/><g transform="translate(${cx - 50} ${cy - 50}) translate(50 50) scale(${r / 30}) translate(-50 -50)"><circle cx="50" cy="50" r="30" fill="url(#sunV)" mask="url(#stripes)"/></g>`;
+const grid = (y0, y1, x0 = 0, x1 = 100) => {
+  let g = `<rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" fill="#0c0616"/>`;
+  const cx = (x0 + x1) / 2;
+  for (let k = -5; k <= 5; k++) g += `<path d="M${cx} ${y0}L${cx + k * 22} ${y1}" stroke="#ff2e88" stroke-width=".7" opacity=".6"/>`;
+  [1.5, 4, 8, 14, 23].forEach(d => g += `<path d="M${x0} ${y0 + d}H${x1}" stroke="#ff2e88" stroke-width=".7" opacity=".6"/>`);
+  return g + `<path d="M${x0} ${y0}H${x1}" stroke="#ff7ab8" stroke-width="1.2" filter="url(#glow)"/>`;
+};
+const stars = () => [[14, 12, .8], [30, 22, .6], [82, 14, .9], [72, 26, .5], [90, 34, .6], [20, 36, .5]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" opacity=".85"/>`).join("");
+
+// ---------- Les 3 icônes ----------
+const ICONS = {
+  // K1 : tuile carrée, soleil + grille, C chromé devant
+  K1: () => `<g clip-path="url(#sq)">
+      <rect width="100" height="100" fill="url(#bgK)"/>${stars()}
+      ${sun(58, 52, 27)}
+      ${grid(62, 100)}
+      <rect width="100" height="100" fill="url(#bgK)" opacity="0"/>
+    </g>
+    <rect x=".5" y=".5" width="99" height="99" rx="21.5" fill="none" stroke="#fff" stroke-opacity=".14"/>
+    ${italic(chromeShape(cPath, { depth: 6 }), 50, 52, .82)}
+    ${sparkle(30, 23, 6)}`,
+
+  // K2 : médaillon rond, le C déborde du cercle
+  K2: () => `<circle cx="50" cy="54" r="42" fill="url(#ring)"/>
+    <circle cx="50" cy="54" r="39.5" fill="#130a22"/>
+    <g clip-path="url(#disc)"><rect width="100" height="100" fill="url(#bgK)"/>${stars()}${sun(50, 58, 25)}${grid(68, 100)}</g>
+    <circle cx="50" cy="54" r="38" fill="none" stroke="#ff7ab8" stroke-width=".8" opacity=".8"/>
+    ${italic(chromeShape(cPath, { depth: 6 }), 50, 44, .92)}
+    ${sparkle(71, 13, 5.5)}`,
+
+  // K3 : monogramme GCA chromé sur tuile
+  K3: () => `<g clip-path="url(#sq)"><rect width="100" height="100" fill="url(#bgK)"/>${stars()}${sun(50, 50, 30)}${grid(62, 100)}</g>
+    <rect x=".5" y=".5" width="99" height="99" rx="21.5" fill="none" stroke="#fff" stroke-opacity=".14"/>
+    <g transform="translate(50 60) skewX(-12) translate(-50 -60)">${chromeShape((f, st, sw) =>
+      `<text x="50" y="68" text-anchor="middle" font-family="Anton, Impact" font-size="40" letter-spacing=".5" fill="${f}" stroke="${st}" stroke-width="${sw}" paint-order="stroke">GCA</text>`, { depth: 5, dx: .7, dy: .9, stroke: 1.1 })}</g>
+    ${sparkle(76, 36, 4.5)}`,
+};
+const INFO = {
+  K1: ["Tuile", "La version la plus complète pour l'icône d'app : le soleil, la grille, et le C chromé devant. Elle tient sur un Dock comme dans un onglet."],
+  K2: ["Médaillon", "Un médaillon rond cerclé de chrome, et le C qui en sort par le haut. Plus « emblème », parfait pour un avatar TikTok ou YouTube."],
+  K3: ["Monogramme", "Les trois lettres GCA en chrome sur le même décor. Plus explicite, mais moins lisible en très petit."],
+};
+
+document.getElementById("icons").innerHTML = Object.keys(ICONS).map(k => `
+  <article class="card">
+    <div class="stage"><svg class="ic" viewBox="0 0 100 100" data-icon="${k}"></svg>
+      <div class="sizes"><svg width="48" height="48" viewBox="0 0 100 100" data-icon="${k}"></svg><svg width="32" height="32" viewBox="0 0 100 100" data-icon="${k}"></svg><svg width="16" height="16" viewBox="0 0 100 100" data-icon="${k}"></svg></div>
+    </div>
+    <div class="meta"><h3><b>${k}</b>${INFO[k][0]}</h3><p>${INFO[k][1]}</p></div>
+  </article>`).join("");
+
+// ---------- Le nom ----------
+const word = (txt, x, y, size, opts = {}) => chromeShape((f, st, sw) =>
+  `<text x="${x}" y="${y}" text-anchor="${opts.anchor || "start"}" font-family="Anton, Impact" font-size="${size}" letter-spacing="${opts.ls || 1.5}" fill="${f}" stroke="${st}" stroke-width="${sw}" paint-order="stroke">${txt}</text>`,
+  { depth: opts.depth || 5, dx: 1, dy: 1.3, stroke: opts.stroke || 2, bevel: false, fill: opts.fill || "url(#chr)" });
+const neon = (txt, x, y, size, ls) => `
+  <text x="${x}" y="${y}" text-anchor="middle" font-family="Anton, Impact" font-size="${size}" letter-spacing="${ls}" fill="none" stroke="#ff2e88" stroke-width="2.6" filter="url(#neon)">${txt}</text>
+  <text x="${x}" y="${y}" text-anchor="middle" font-family="Anton, Impact" font-size="${size}" letter-spacing="${ls}" fill="none" stroke="#ffd0e4" stroke-width="1">${txt}</text>`;
+const WORDS = {
+  line: () => `<g transform="translate(0 45) skewX(-10) translate(0 -45)">${word("GRAND CLIP AUTO", 12, 70, 68)}</g>`,
+  nav: () => `<svg x="0" y="4" width="92" height="92" viewBox="0 0 100 100">${ICONS.K1()}</svg><g transform="translate(0 50) skewX(-10) translate(0 -50)">${word("GRAND CLIP AUTO", 112, 76, 66, { depth: 4 })}</g>`,
+  stack: () => `<g transform="translate(160 120) skewX(-10) translate(-160 -120)">
+      ${word("GRAND", 160, 88, 82, { anchor: "middle", ls: 3 })}
+      ${word("CLIP", 160, 172, 96, { anchor: "middle", ls: 4, depth: 7 })}
+    </g>
+    <g transform="translate(160 226) skewX(-10) translate(-160 -226)">${neon("AUTO", 172, 232, 44, 22)}</g>
+    ${sparkle(250, 30, 8)}`,
+};
+
+// Rendu
+document.querySelectorAll("[data-icon]").forEach(s => s.innerHTML = ICONS[s.dataset.icon]());
+document.fonts.ready.then(() => document.querySelectorAll("[data-word]").forEach(s => s.innerHTML = WORDS[s.dataset.word]()));
+</script>
+</body>
+</html>

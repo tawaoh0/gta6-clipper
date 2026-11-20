@@ -1,4 +1,4 @@
-"""Dessine l'icône de l'app (packaging/icon.png, .icns pour Mac, .ico pour Windows).
+"""ANCIENNE icône (remplacée par le logo officiel : branding/make_app_icons.py). Dessine l'icône de l'app (packaging/icon.png, .icns pour Mac, .ico pour Windows).
 
 Ciel de nuit, soleil couchant magenta → orange, et un cadre vertical 9:16 avec un bouton lecture.
 Usage : uv run python packaging/make_icon.py
@@ -70,10 +70,10 @@ def draw() -> Image.Image:
 
 def main():
     icon = draw()
-    icon.save(HERE / "icon.png")
-    icon.save(HERE / "icon.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
+    icon.save(HERE / "old-icon" / "icon.png")
+    icon.save(HERE / "old-icon" / "icon.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
     if sys.platform == "darwin" and shutil.which("iconutil"):
-        iconset = HERE / "icon.iconset"
+        iconset = HERE / "old-icon" / "icon.iconset"
         iconset.mkdir(exist_ok=True)
         # Sur Mac, l'icône laisse une petite marge autour du carré arrondi
         padded = Image.new("RGBA", (S, S), (0, 0, 0, 0))
@@ -81,7 +81,7 @@ def main():
         for s in (16, 32, 128, 256, 512):
             padded.resize((s, s), Image.LANCZOS).save(iconset / f"icon_{s}x{s}.png")
             padded.resize((s * 2, s * 2), Image.LANCZOS).save(iconset / f"icon_{s}x{s}@2x.png")
-        subprocess.run(["iconutil", "-c", "icns", str(iconset), "-o", str(HERE / "icon.icns")], check=True)
+        subprocess.run(["iconutil", "-c", "icns", str(iconset), "-o", str(HERE / "old-icon" / "icon.icns")], check=True)
         shutil.rmtree(iconset)
     print("icônes écrites dans", HERE)
 

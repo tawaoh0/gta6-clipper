@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1024" height="1024">
+<!-- Grand Clip Auto — logo officiel « Tuile » (K1) : C chromé devant le soleil rayé et la grille néon -->
+<defs>
+<linearGradient id="chr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".22" stop-color="#e4ebff"/><stop offset=".44" stop-color="#8d9cf0"/><stop offset=".5" stop-color="#1c1440"/><stop offset=".53" stop-color="#7a1d5c"/><stop offset=".62" stop-color="#ff2e88"/><stop offset=".82" stop-color="#ff9a4a"/><stop offset="1" stop-color="#ffe7b0"/></linearGradient>
+<linearGradient id="sunV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd27a"/><stop offset=".45" stop-color="#ff7a45"/><stop offset="1" stop-color="#ff2e88"/></linearGradient>
+<linearGradient id="bgK" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#160c30"/><stop offset=".62" stop-color="#3b1250"/><stop offset=".62" stop-color="#0c0616"/><stop offset="1" stop-color="#120820"/></linearGradient>
+<radialGradient id="sunGlow"><stop offset="0" stop-color="#ff5a7d" stop-opacity=".7"/><stop offset="1" stop-color="#ff5a7d" stop-opacity="0"/></radialGradient>
+<filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<mask id="stripes" maskUnits="userSpaceOnUse" x="-50" y="-50" width="200" height="200"><rect x="-50" y="-50" width="200" height="200" fill="#fff"/><rect x="-50" y="52" width="200" height="2.2" fill="#000"/><rect x="-50" y="57.5" width="200" height="2.8" fill="#000"/><rect x="-50" y="63.5" width="200" height="3.4" fill="#000"/><rect x="-50" y="70" width="200" height="4" fill="#000"/><rect x="-50" y="77" width="200" height="4.6" fill="#000"/></mask>
+<clipPath id="sq"><rect width="100" height="100" rx="22"/></clipPath>
+<path id="c" d="M68 16Q78 16 78 26L78 32L44 32Q38 32 38 38L38 62Q38 68 44 68L78 68L78 74Q78 84 68 84L44 84Q22 84 22 62L22 38Q22 16 44 16Z"/>
+</defs>
+<g clip-path="url(#sq)">
+<rect width="100" height="100" fill="url(#bgK)"/>
+<g fill="#fff" opacity=".85"><circle cx="14" cy="12" r=".8"/><circle cx="30" cy="22" r=".6"/><circle cx="82" cy="14" r=".9"/><circle cx="72" cy="26" r=".5"/><circle cx="90" cy="34" r=".6"/><circle cx="20" cy="36" r=".5"/></g>
+<circle cx="58" cy="52" r="40.5" fill="url(#sunGlow)"/>
+<g transform="translate(8 2) translate(50 50) scale(0.9) translate(-50 -50)"><circle cx="50" cy="50" r="30" fill="url(#sunV)" mask="url(#stripes)"/></g>
+<rect y="62" width="100" height="38" fill="#0c0616"/>
+<g stroke="#ff2e88" stroke-width=".7" opacity=".6"><path d="M50 62L-60 100M50 62L-38 100M50 62L-16 100M50 62L6 100M50 62L28 100M50 62L50 100M50 62L72 100M50 62L94 100M50 62L116 100M50 62L138 100M50 62L160 100M0 63.5H100M0 66H100M0 70H100M0 76H100M0 85H100"/></g>
+<path d="M0 62H100" stroke="#ff7ab8" stroke-width="1.2" filter="url(#glow)"/>
+</g>
+<rect x=".5" y=".5" width="99" height="99" rx="21.5" fill="none" stroke="#fff" stroke-opacity=".14"/>
+<g transform="translate(50 52) scale(0.82) skewX(-12) translate(-50 -52)" stroke="#120820" stroke-width="1.3" stroke-linejoin="round" paint-order="stroke">
+<use href="#c" transform="translate(5.4 6.6)" fill="#1e0b33"/>
+<use href="#c" transform="translate(4.5 5.5)" fill="#441141"/>
+<use href="#c" transform="translate(3.6 4.4)" fill="#69174f"/>
+<use href="#c" transform="translate(2.7 3.3)" fill="#8f1d5e"/>
+<use href="#c" transform="translate(1.8 2.2)" fill="#b4226c"/>
+<use href="#c" transform="translate(0.9 1.1)" fill="#da287a"/>
+<use href="#c" fill="url(#chr)"/>
+<use href="#c" fill="none" stroke="#fff" stroke-width=".5" opacity=".75"/>
+</g>
+<g transform="translate(30 23)" filter="url(#glow)"><path d="M0 -6L1.32 -1.32L6 0L1.32 1.32L0 6L-1.32 1.32L-6 0L-1.32 -1.32Z" fill="#fff"/><circle r="1.68" fill="#fff"/></g>
+</svg>

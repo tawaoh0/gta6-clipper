@@ -23,8 +23,6 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uv python install 3.12
       - run: uv sync --frozen
-      - name: Icônes
-        run: uv run python packaging/make_icon.py
       - name: PyInstaller
         run: uv run pyinstaller packaging/clipper.spec --noconfirm --distpath dist --workpath build
       - name: DMG (Mac)

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logos Grand Clip Auto</title>
+<style>
+@font-face { font-family: "Anton"; src: url(../site/assets/fonts/Anton-Regular.ttf) format("truetype"); }
+@font-face { font-family: "Manrope"; src: url(../site/assets/fonts/Manrope.ttf) format("truetype"); font-weight: 200 800; }
+@font-face { font-family: "JetBrains Mono"; src: url(../site/assets/fonts/JetBrainsMono.ttf) format("truetype"); font-weight: 100 800; }
+:root { --night: #0a0811; --panel: #15101f; --line: #2b2340; --text: #f4eff9; --muted: #a89dbf; --sun: linear-gradient(100deg, #ff2e88, #ff7a45 60%, #ffc35a); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--night); color: var(--text); font-family: "Manrope", system-ui, sans-serif; padding: 56px 16px 80px; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+header h1 { font: 400 clamp(44px, 6vw, 76px)/1 "Anton", Impact, sans-serif; text-transform: uppercase; }
+header p { color: var(--muted); margin-top: 12px; font-size: 17px; max-width: 640px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; margin-top: 44px; }
+.card { background: var(--panel); border: 1px solid #221b34; border-radius: 24px; overflow: hidden; display: flex; flex-direction: column; }
+.hero { height: 250px; display: grid; place-items: center; position: relative;
+  background: radial-gradient(70% 80% at 50% 110%, rgba(255, 46, 136, .22), transparent 70%), #0d0a15; }
+.appicon { width: 150px; height: 150px; border-radius: 34px; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(160deg, #221835, #120d1c 60%, #2a1030); box-shadow: 0 0 0 1px #3a2f52, 0 30px 60px -20px #000; transition: transform .4s cubic-bezier(.2,.8,.2,1); }
+.card:hover .appicon { transform: translateY(-6px) rotate(-3deg) scale(1.04); }
+.appicon svg { width: 76%; height: 76%; }
+.sizes { position: absolute; right: 16px; bottom: 16px; display: flex; gap: 10px; align-items: flex-end; }
+.sizes span { display: grid; place-items: center; border-radius: 22%; color: #fff; background: #120d1c; box-shadow: 0 0 0 1px #3a2f52; }
+.sizes .s48 { width: 48px; height: 48px; } .sizes .s32 { width: 32px; height: 32px; } .sizes .s20 { width: 20px; height: 20px; }
+.sizes svg { width: 80%; height: 80%; }
+.lock { padding: 22px 22px; display: flex; align-items: center; gap: 14px; border-top: 1px solid #221b34; min-height: 88px; }
+.lock svg.mark { width: 44px; height: 44px; flex: none; }
+.lock.dark { color: #fff; }
+.lock.light { background: #f6f1ec; color: #140f1d; }
+.word { font: 400 26px/1 "Anton", Impact, sans-serif; text-transform: uppercase; letter-spacing: .01em; white-space: nowrap; }
+.grad { background: var(--sun); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.light .grad { background: linear-gradient(100deg, #e0156f, #ef5a1e 70%, #e88a00); -webkit-background-clip: text; background-clip: text; }
+.chip { display: inline-block; background: var(--sun); color: #1a0710; padding: 3px 7px 1px; border-radius: 5px; transform: rotate(-5deg); margin: 0 2px; }
+.w-modern { font: 800 25px/1 "Manrope", sans-serif; text-transform: none; letter-spacing: -.04em; }
+.w-stack { display: grid; gap: 4px; }
+.w-stack small { font: 700 11px "JetBrains Mono", monospace; letter-spacing: .5em; color: currentColor; opacity: .65; }
+.meta { padding: 20px 22px 24px; border-top: 1px solid #221b34; flex: 1; }
+.meta h2 { font: 400 26px "Anton", sans-serif; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
+.meta h2 b { font: 700 12px "JetBrains Mono", monospace; color: #1a0710; background: var(--sun); border-radius: 6px; padding: 4px 8px; }
+.meta p { color: var(--muted); font-size: 15px; margin-top: 8px; line-height: 1.5; }
+.card.current { opacity: .75; }
+.card.current .meta h2 b { background: #3a2f52; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- Logos : chaque symbole utilise currentColor pour la partie « encre », donc il marche sur fond sombre et clair -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="gV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffc35a"/><stop offset=".5" stop-color="#ff7a45"/><stop offset="1" stop-color="#ff2e88"/></linearGradient>
+    <linearGradient id="gH" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#ff2e88"/><stop offset=".6" stop-color="#ff7a45"/><stop offset="1" stop-color="#ffc35a"/></linearGradient>
+    <clipPath id="capA"><rect x="28" y="7" width="44" height="86" rx="15"/></clipPath>
+    <mask id="stripesA" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+      <rect width="100" height="100" fill="#fff"/>
+      <rect y="66" width="100" height="2.6" fill="#000"/><rect y="72.5" width="100" height="3.2" fill="#000"/><rect y="79.5" width="100" height="3.8" fill="#000"/><rect y="87" width="100" height="4.4" fill="#000"/>
+    </mask>
+  </defs>
+
+  <!-- A · Soleil vertical -->
+  <symbol id="A" viewBox="0 0 100 100">
+    <g clip-path="url(#capA)"><circle cx="50" cy="72" r="30" fill="url(#gV)" mask="url(#stripesA)"/></g>
+    <rect x="28" y="7" width="44" height="86" rx="15" fill="none" stroke="currentColor" stroke-width="4.5"/>
+    <path d="M43 25.5 59 35 43 44.5z" fill="currentColor" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+  </symbol>
+
+  <!-- B · Recadrage -->
+  <symbol id="B" viewBox="0 0 100 100">
+    <g fill="none" stroke="url(#gH)" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M28 22V9h13M59 9h13v13M72 78v13H59M41 91H28V78"/>
+    </g>
+    <rect x="37" y="22" width="26" height="16" rx="4" fill="url(#gH)"/>
+    <path d="M43 50 61 61 43 72z" fill="currentColor" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+  </symbol>
+
+  <!-- C · Le pic -->
+  <symbol id="C" viewBox="0 0 100 100">
+    <rect x="12" y="38" width="11" height="24" rx="5.5" fill="currentColor" opacity=".38"/>
+    <rect x="28" y="26" width="11" height="48" rx="5.5" fill="currentColor" opacity=".6"/>
+    <rect x="44.5" y="8" width="11" height="84" rx="5.5" fill="url(#gV)"/>
+    <rect x="61" y="26" width="11" height="48" rx="5.5" fill="currentColor" opacity=".6"/>
+    <rect x="77" y="38" width="11" height="24" rx="5.5" fill="currentColor" opacity=".38"/>
+  </symbol>
+
+  <!-- D · L'accroche -->
+  <symbol id="D" viewBox="0 0 100 100">
+    <g transform="rotate(-9 50 50)">
+      <rect x="9" y="30" width="82" height="40" rx="8" fill="url(#gH)"/>
+      <text x="50" y="62.5" text-anchor="middle" font-family="Anton, Impact, sans-serif" font-size="31" fill="#1a0710" letter-spacing="1">GCA</text>
+    </g>
+  </symbol>
+
+  <!-- E · Boucle auto -->
+  <symbol id="E" viewBox="0 0 100 100">
+    <path d="M76.5 30A32 32 0 1 0 82 52H64" fill="none" stroke="url(#gH)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M71 19.5 82 27.5 70.5 36.5z" fill="#ff7a45" stroke="#ff7a45" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M41 39 56 48.5 41 58z" fill="currentColor" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+  </symbol>
+</svg>
+
+<div class="wrap">
+  <header>
+    <h1>Logo <span class="grad">· 5 pistes</span></h1>
+    <p>Chaque piste est montrée en icône d'app, en petites tailles (onglet, barre des tâches) et avec le nom, sur fond sombre et sur fond clair.</p>
+  </header>
+
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+const pistes = [
+  { id: "A", name: "Soleil vertical", desc: "Ton icône actuelle, simplifiée : un écran vertical rempli du soleil rayé, avec le bouton lecture. Reconnaissable même tout petit.",
+    word: `GRAND <span class="grad">CLIP</span> AUTO` },
+  { id: "B", name: "Recadrage", desc: "Les coins de recadrage forment un cadre 9:16, la cam en haut, la vidéo en dessous. On comprend ce que fait l'app d'un coup d'œil.",
+    word: `GRAND CLIP <span class="grad">AUTO</span>` },
+  { id: "C", name: "Le pic", desc: "Une onde sonore dont la barre du milieu est le moment fort. Très simple, très moderne, marche en une couleur.",
+    word: `<span class="w-modern">grand<span class="grad">clip</span>auto</span>` },
+  { id: "D", name: "L'accroche", desc: "Reprend le bandeau penché que l'app met sur chaque vidéo. Le logo devient la signature visuelle de tes clips.",
+    word: `GRAND <span class="chip">CLIP</span> AUTO` },
+  { id: "E", name: "Boucle auto", desc: "Un G qui tourne en boucle autour d'un bouton lecture : la vidéo qui se fait toute seule, encore et encore.",
+    word: `<span class="w-stack"><span>GRAND <span class="grad">CLIP</span></span><small>AUTO</small></span>` },
+];
+const use = id => `<svg viewBox="0 0 100 100"><use href="#${id}"/></svg>`;
+const grid = document.getElementById("grid");
+grid.innerHTML = pistes.map(p => `
+  <article class="card">
+    <div class="hero">
+      <div class="appicon">${use(p.id)}</div>
+      <div class="sizes"><span class="s48">${use(p.id)}</span><span class="s32">${use(p.id)}</span><span class="s20">${use(p.id)}</span></div>
+    </div>
+    <div class="lock dark"><svg class="mark" viewBox="0 0 100 100"><use href="#${p.id}"/></svg><span class="word">${p.word}</span></div>
+    <div class="lock light"><svg class="mark" viewBox="0 0 100 100"><use href="#${p.id}"/></svg><span class="word">${p.word}</span></div>
+    <div class="meta"><h2><b>${p.id}</b>${p.name}</h2><p>${p.desc}</p></div>
+  </article>`).join("") + `
+  <article class="card current">
+    <div class="hero"><img class="appicon" src="../site/assets/icon.png" alt="" style="padding:0;object-fit:cover"></div>
+    <div class="lock dark"><img src="../site/assets/icon.png" alt="" style="width:44px;height:44px;border-radius:10px"><span class="word">GRAND CLIP AUTO</span></div>
+    <div class="meta"><h2><b>ACTUEL</b>Pour comparer</h2><p>L'icône d'aujourd'hui : riche en détails, mais elle se lit moins bien en petite taille.</p></div>
+  </article>`;
+</script>
+</body>
+</html>
